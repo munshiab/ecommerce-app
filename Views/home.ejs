@@ -1,0 +1,36 @@
+<div class="container">
+    <h2>Welcome to Our Store</h2>
+    
+    <h3>Featured Products</h3>
+    <div class="row">
+      <% featured.forEach(product => { %>
+        <div class="col s12 m6 l4">
+          <div class="card">
+            <div class="card-image">
+              <img src="<%= product.image_url %>" alt="<%= product.product_name %>">
+            </div>
+            <div class="card-content">
+              <span class="card-title"><%= product.product_name %></span>
+              <p><%= product.description %></p>
+              <p>Price: $<%= product.price %></p>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  
+    <h3>New Arrivals</h3>
+    <div class="row">
+      <% newArrivals.forEach(product => { %>
+        <div class="col s12 m6 l4">
+          <div class="card">
+            <div class="card-content">
+              <h4><%= product.product_name %></h4>
+              <p><%= product.description %></p>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+  

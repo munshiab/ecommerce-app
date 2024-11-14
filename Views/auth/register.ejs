@@ -1,0 +1,25 @@
+
+<div class="container">
+  <h3>Register</h3>
+  <form action="/auth/register" method="POST">
+    <div class="input-field">
+      <label for="username">Username</label>
+      <input type="text" name="username" required>
+    </div>
+
+    <div class="input-field">
+      <label for="email">Email</label>
+      <input type="email" name="email" required>
+    </div>
+
+    <div class="input-field">
+      <label for="password">Password</label>
+      <input type="password" name="password" required>
+    </div>
+
+    <!-- Hidden field to assign default role (e.g., Customer) -->
+    <input type="hidden" name="roleId" value="1">
+
+    <button type="submit" class="btn">Register</button>
+  </form>
+</div>

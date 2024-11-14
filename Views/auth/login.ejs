@@ -1,0 +1,31 @@
+<!-- <form action="/auth/login" method="POST">
+    <div class="input-field">
+      <input type="text" name="username" required>
+      <label for="username">Username</label>
+    </div>
+    <div class="input-field">
+      <input type="password" name="password" required>
+      <label for="password">Password</label>
+    </div>
+    <button type="submit" class="btn">Login</button>
+  </form>
+    -->
+ 
+   <div class="container">
+     <h3>Login</h3>
+     <% if (typeof error !== 'undefined') { %>
+       <div class="alert alert-danger"><%= error %></div>
+     <% } %>
+     <form action="/auth/login" method="POST">
+       <div class="input-field">
+         <label for="email">Email</label>
+         <input type="email" name="email" required>
+       </div>
+       <div class="input-field">
+         <label for="password">Password</label>
+         <input type="password" name="password" required>
+       </div>
+       <button type="submit" class="btn">Login</button>
+     </form>
+   </div>
+   
