@@ -3,6 +3,13 @@
 <head>
   <%- include('../Partials/header') %>
   <link rel="stylesheet" href="/css/admin-theme.css">
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const elems = document.querySelectorAll('select');
+      M.FormSelect.init(elems);
+    });
+  </script>
+  
 </head>
 <body>
   <%- include('../Partials/adminNavbar') %>

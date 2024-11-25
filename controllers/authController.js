@@ -28,7 +28,8 @@ exports.getLogin = (req, res) => {
 // Handle Login Form Submission
 exports.login = (req, res) => {
   const { email, password } = req.body;
-
+console.log(email);
+console.log(password);
   User.findByEmail(email, (err, results) => {
     if (err || results.length === 0) {
       return res.status(401).render('auth/login', { layout: 'layouts/mainLayout', error: 'User not found' });

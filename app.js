@@ -71,6 +71,8 @@ app.get('/auth/logout', (req, res) => {
     res.redirect('/auth/login');
   });
 });
+const businessRoutes = require('./routes/businessRoutes');
+app.use('/business', businessRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

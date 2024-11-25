@@ -1,0 +1,29 @@
+<div class="container">
+    <h2>Manage Products</h2>
+    <a href="/business/products/add" class="btn">Add New Product</a>
+  
+    <table>
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>Description</th>
+          <th>Price</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% products.forEach(product => { %>
+          <tr>
+            <td><%= product.product_name %></td>
+            <td><%= product.description %></td>
+            <td>$<%= product.price %></td>
+            <td>
+              <a href="/business/products/edit/<%= product.product_id %>">Edit</a> |
+              <a href="/business/products/delete/<%= product.product_id %>" onclick="return confirm('Are you sure?')">Delete</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  
