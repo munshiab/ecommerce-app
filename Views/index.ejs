@@ -1,10 +1,4 @@
-<!-- <div class="container">
-  <h2>Welcome to Our E-commerce Site!</h2>
-  <p>Find the best products at unbeatable prices.</p>
-  <a href="/products" class="btn waves-effect waves-light">Shop Now</a>
-</div>
- -->
- <div class="container">
+<div class="container">
   <h3 class="center-align">Products</h3>
 
   <!-- Search and Filter Section -->
@@ -35,7 +29,7 @@
   <div class="row" id="productList">
     <% products.forEach(product => { %>
       <div class="col s12 m6 l4">
-        <div class="card product-card">
+        <div class="card product-card" data-category="<%= product.category_id %>">
           <div class="card-image">
             <img src="<%= product.image_url %>" alt="<%= product.product_name %>" class="product-image">
           </div>
@@ -43,20 +37,11 @@
             <h6><%= product.product_name %></h6>
             <p>$<%= (parseFloat(product.price) || 0).toFixed(2) %></p>
           </div>
-         <!--  <div class="card-action">
-            <a href="#" onclick="addToCart(<%= product.product_id %>)" class="btn waves-effect waves-light">Add to Cart</a>
-          </div> -->
           <div class="card-action">
-            <form action="/cart/add" method="POST" style="display: inline;">
-              <input type="hidden" name="product_id" value="<%= product.product_id %>">
-              <% if (user_id) { %>
-                <input type="hidden" name="user_id" value="<%= user_id %>"> <!-- Include only if user_id exists -->
-              <% } %>
+            <form id="add-to-cart-form-<%= product.product_id %>" onsubmit="addToCart(event, '<%= product.product_id %>', '<%- escape(product.product_name) %>')">
               <button type="submit" class="btn waves-effect waves-light">Add to Cart</button>
             </form>
           </div>
-          
-          
         </div>
       </div>
     <% }) %>
@@ -75,6 +60,48 @@
 </div>
 
 <script>
+  // Handle Add to Cart
+  async function addToCart(event, productId, productName) {
+    event.preventDefault(); // Prevent default form submission
+
+    try {
+      const response = await fetch('/cart/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ product_id: productId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update cart count
+        updateCartCount();
+
+        // Display a success toast with the product name
+        M.toast({ html: `Product "${productName}" added to cart!`, classes: 'green darken-1' });
+      } else {
+        console.error('Failed to add product to cart:', data.message);
+        M.toast({ html: `Failed to add product: ${data.message}`, classes: 'red darken-1' });
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      M.toast({ html: 'An error occurred while adding to cart.', classes: 'red darken-1' });
+    }
+  }
+
+  // Update cart count dynamically
+  async function updateCartCount() {
+    try {
+      const response = await fetch('/cart/count');
+      const data = await response.json();
+      document.getElementById('cart-count').innerText = data.cartItemCount || 0;
+    } catch (error) {
+      console.error('Error updating cart count:', error);
+    }
+  }
+
   // Filtering products by name or category
   function filterProducts() {
     const searchInput = document.getElementById('searchInput').value.toLowerCase();
@@ -119,10 +146,5 @@
 
     productList.innerHTML = '';
     products.forEach(product => productList.appendChild(product));
-  }
-
-  // Adding a product to the cart
-  function addToCart(productId) {
-    alert(`Product ${productId} added to cart!`);
   }
 </script>

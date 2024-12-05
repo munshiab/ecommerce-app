@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const db = require('../config/db');
 // Render Registration Page
 exports.getRegister = (req, res) => {
   res.render('auth/register', { layout: 'layouts/mainLayout' });

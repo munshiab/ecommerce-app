@@ -9,6 +9,7 @@ const cartRoutes = require('./routes/cartRoutes');
 require('dotenv').config();
 
 const app = express();
+const db = require('./config/db'); // Adjust the path as per your project structure
 
 // Middleware for parsing JSON and URL-encoded form data
 app.use(express.json());
@@ -37,7 +38,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware to calculate and pass cartItemCount to views
+/* // Middleware to calculate and pass cartItemCount to views
 app.use((req, res, next) => {
   res.locals.userId = req.session.userId || null;
 
@@ -57,6 +58,27 @@ app.use((req, res, next) => {
     const cart = req.session.cart || [];
     res.locals.cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
     console.log('Middleware: userId:', res.locals.userId, 'cartItemCount:', res.locals.cartItemCount);
+    next();
+  }
+}); */
+// Corrected middleware to set userId and cartItemCount
+app.use((req, res, next) => {
+  res.locals.userId = req.session.userId || null;
+
+  if (req.session.userId) {
+    const query = 'SELECT SUM(quantity) AS cartItemCount FROM Cart WHERE user_id = ?';
+    db.query(query, [req.session.userId], (err, results) => {
+      if (err) {
+        console.error('Error fetching cart count:', err);
+        res.locals.cartItemCount = 0;
+        return next();
+      }
+      res.locals.cartItemCount = results[0]?.cartItemCount || 0;
+      next();
+    });
+  } else {
+    const cart = req.session.cart || [];
+    res.locals.cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
     next();
   }
 });
