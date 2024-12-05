@@ -1,5 +1,128 @@
-<div class="container">
+<!-- <div class="container">
   <h2>Welcome to Our E-commerce Site!</h2>
   <p>Find the best products at unbeatable prices.</p>
   <a href="/products" class="btn waves-effect waves-light">Shop Now</a>
 </div>
+ -->
+ <div class="container">
+  <h3 class="center-align">Products</h3>
+
+  <!-- Search and Filter Section -->
+  <div class="row">
+    <div class="col s12 m6">
+      <input type="text" id="searchInput" placeholder="Search products..." oninput="filterProducts()" />
+    </div>
+    <div class="col s6 m3">
+      <select id="sortBy" class="browser-default" onchange="sortProducts()">
+        <option value="" disabled selected>Sort by</option>
+        <option value="priceAsc">Price: Low to High</option>
+        <option value="priceDesc">Price: High to Low</option>
+        <option value="nameAsc">Name: A to Z</option>
+        <option value="nameDesc">Name: Z to A</option>
+      </select>
+    </div>
+    <div class="col s6 m3">
+      <select id="filterCategory" class="browser-default" onchange="filterProducts()">
+        <option value="" disabled selected>Filter by Category</option>
+        <% categories.forEach(category => { %>
+          <option value="<%= category.category_id %>"><%= category.category_name %></option>
+        <% }) %>
+      </select>
+    </div>
+  </div>
+
+  <!-- Product List -->
+  <div class="row" id="productList">
+    <% products.forEach(product => { %>
+      <div class="col s12 m6 l4">
+        <div class="card product-card">
+          <div class="card-image">
+            <img src="<%= product.image_url %>" alt="<%= product.product_name %>" class="product-image">
+          </div>
+          <div class="card-content">
+            <h6><%= product.product_name %></h6>
+            <p>$<%= (parseFloat(product.price) || 0).toFixed(2) %></p>
+          </div>
+         <!--  <div class="card-action">
+            <a href="#" onclick="addToCart(<%= product.product_id %>)" class="btn waves-effect waves-light">Add to Cart</a>
+          </div> -->
+          <div class="card-action">
+            <form action="/cart/add" method="POST" style="display: inline;">
+              <input type="hidden" name="product_id" value="<%= product.product_id %>">
+              <% if (user_id) { %>
+                <input type="hidden" name="user_id" value="<%= user_id %>"> <!-- Include only if user_id exists -->
+              <% } %>
+              <button type="submit" class="btn waves-effect waves-light">Add to Cart</button>
+            </form>
+          </div>
+          
+          
+        </div>
+      </div>
+    <% }) %>
+  </div>
+
+  <!-- Pagination -->
+  <div class="row center-align">
+    <ul class="pagination">
+      <% for (let i = 1; i <= totalPages; i++) { %>
+        <li class="<%= currentPage === i ? 'active' : 'waves-effect' %>">
+          <a href="?page=<%= i %>"><%= i %></a>
+        </li>
+      <% } %>
+    </ul>
+  </div>
+</div>
+
+<script>
+  // Filtering products by name or category
+  function filterProducts() {
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    const categoryFilter = document.getElementById('filterCategory').value;
+    const products = document.querySelectorAll('.product-card');
+
+    products.forEach(card => {
+      const name = card.querySelector('h6').innerText.toLowerCase();
+      const category = card.dataset.category;
+
+      const matchesSearch = !searchInput || name.includes(searchInput);
+      const matchesCategory = !categoryFilter || category === categoryFilter;
+
+      if (matchesSearch && matchesCategory) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  // Sorting products
+  function sortProducts() {
+    const sortBy = document.getElementById('sortBy').value;
+    const productList = document.getElementById('productList');
+    const products = Array.from(productList.children);
+
+    products.sort((a, b) => {
+      const priceA = parseFloat(a.querySelector('p').innerText.replace('$', ''));
+      const priceB = parseFloat(b.querySelector('p').innerText.replace('$', ''));
+      const nameA = a.querySelector('h6').innerText.toLowerCase();
+      const nameB = b.querySelector('h6').innerText.toLowerCase();
+
+      switch (sortBy) {
+        case 'priceAsc': return priceA - priceB;
+        case 'priceDesc': return priceB - priceA;
+        case 'nameAsc': return nameA.localeCompare(nameB);
+        case 'nameDesc': return nameB.localeCompare(nameA);
+        default: return 0;
+      }
+    });
+
+    productList.innerHTML = '';
+    products.forEach(product => productList.appendChild(product));
+  }
+
+  // Adding a product to the cart
+  function addToCart(productId) {
+    alert(`Product ${productId} added to cart!`);
+  }
+</script>

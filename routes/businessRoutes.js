@@ -25,12 +25,12 @@ router.get('/products', businessController.getProducts);
 
 // Route to add a new product
 router.get('/products/add', businessController.getAddProduct);
-router.post('/products/add', businessController.postAddProduct);
+router.post('/products/add',upload.single('image'), businessController.postAddProduct);
 
 // Route to edit a product
 router.get('/products/edit/:id', businessController.getEditProduct);
-router.post('/products/edit/:id', businessController.postEditProduct);
-
+//router.post('/products/edit/:id', businessController.postEditProduct);
+router.post('/products/edit/:id', upload.single('image'), businessController.postEditProduct);
 // Route to delete a product
 router.get('/products/delete/:id', businessController.deleteProduct);
 

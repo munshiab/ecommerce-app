@@ -5,6 +5,7 @@ const expressLayouts = require('express-ejs-layouts');
 const authRoutes = require('./routes/authRoutes');
 const homeRoutes = require('./routes/homeRoutes');
 const productRoutes = require('./routes/productRoutes');
+const cartRoutes = require('./routes/cartRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -36,14 +37,48 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware to calculate and pass cartItemCount to views
+// Middleware to calculate and pass cartItemCount to views
+app.use(async (req, res, next) => {
+  try {
+    if (req.session.userId) {
+      // Fetch cart count from the database for logged-in users
+      const query = 'SELECT SUM(quantity) AS cartItemCount FROM Cart WHERE user_id = ?';
+      db.query(query, [req.session.userId], (err, results) => {
+        if (err) {
+          console.error('Error fetching cart count:', err);
+          res.locals.cartItemCount = 0;
+          return next();
+        }
+        res.locals.cartItemCount = results[0].cartItemCount || 0;
+        next();
+      });
+    } else {
+      // Fetch cart count from session for non-logged-in users
+      const cart = req.session.cart || [];
+      const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+      res.locals.cartItemCount = cartItemCount;
+      next();
+    }
+  } catch (error) {
+    console.error('Error in cartItemCount middleware:', error);
+    res.locals.cartItemCount = 0;
+    next();
+  }
+});
+app.use('/cart', cartRoutes); // Add Cart routes
 // Authentication routes
 app.use('/auth', authRoutes);
 app.use('/home', homeRoutes);
 app.use('/product',productRoutes);
+
 // Home route for regular users
-app.get('/', (req, res) => {
+/* app.get('/', (req, res) => {
   res.render('index', { layout: 'layouts/mainLayout', theme: 'user' });
-});
+}); */
+const productController = require('./controllers/productController');
+// Replace static home route with dynamic one
+app.get('/', productController.getProductsPage)
 
 // Admin dashboard route
 app.get('/admin/dashboard', (req, res) => {
@@ -73,6 +108,7 @@ app.get('/auth/logout', (req, res) => {
 });
 const businessRoutes = require('./routes/businessRoutes');
 app.use('/business', businessRoutes);
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;

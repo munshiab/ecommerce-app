@@ -1,9 +1,8 @@
 // routes/productRoutes.js
 const express = require('express');
+const productController= require('../controllers/productController')
 const router = express.Router();
 
-router.get('/', (req, res) => {
-  res.render('products/productList', { layout: 'layouts/mainLayout' });
-});
+router.get('/', productController.getProductsPage );
 
 module.exports = router;

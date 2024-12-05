@@ -26,6 +26,39 @@ module.exports = Product;
 const db = require('../config/db');
 
 const Product = {
+  /* getAllProducts: (cb) => {
+    const query = 'SELECT * FROM Products';
+    db.query(query, cb);
+  }, */
+  getAllProducts: (cb) => {
+    const query = `
+      SELECT 
+        product_id, 
+        category_id, 
+        product_name, 
+        description, 
+        CAST(price AS DECIMAL(10,2)) AS price, 
+        stock_quantity, 
+        image_url 
+      FROM Products`;
+    db.query(query, cb);
+  },
+
+  getFeatured: (cb) => {
+    console.log('Fetching featured products');
+    const query = 'SELECT * FROM Products WHERE is_featured = 1 LIMIT 5';
+    db.query(query, cb);
+  },
+  getNewArrivals: (cb) => {
+    console.log('Fetching new arrivals');
+    const query = 'SELECT * FROM Products ORDER BY created_at DESC LIMIT 5';
+    db.query(query, cb);
+  },
+  getBestSellers: (cb) => {
+    console.log('Fetching best sellers');
+    const query = 'SELECT * FROM Products WHERE is_best_seller = 1 LIMIT 5';
+    db.query(query, cb);
+  },
   // Fetch all products for a specific business owner
   getByOwner: (ownerId, cb) => {
     const query = 'SELECT * FROM Products WHERE business_owner_id = ?';
