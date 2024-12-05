@@ -38,34 +38,29 @@ app.use((req, res, next) => {
 });
 
 // Middleware to calculate and pass cartItemCount to views
-// Middleware to calculate and pass cartItemCount to views
-app.use(async (req, res, next) => {
-  try {
-    if (req.session.userId) {
-      // Fetch cart count from the database for logged-in users
-      const query = 'SELECT SUM(quantity) AS cartItemCount FROM Cart WHERE user_id = ?';
-      db.query(query, [req.session.userId], (err, results) => {
-        if (err) {
-          console.error('Error fetching cart count:', err);
-          res.locals.cartItemCount = 0;
-          return next();
-        }
+app.use((req, res, next) => {
+  res.locals.userId = req.session.userId || null;
+
+  if (req.session.userId) {
+    const query = 'SELECT SUM(quantity) AS cartItemCount FROM Cart WHERE user_id = ?';
+    db.query(query, [req.session.userId], (err, results) => {
+      if (err) {
+        console.error('Error fetching cart count:', err);
+        res.locals.cartItemCount = 0;
+      } else {
         res.locals.cartItemCount = results[0].cartItemCount || 0;
-        next();
-      });
-    } else {
-      // Fetch cart count from session for non-logged-in users
-      const cart = req.session.cart || [];
-      const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
-      res.locals.cartItemCount = cartItemCount;
+      }
+      console.log('Middleware: userId:', res.locals.userId, 'cartItemCount:', res.locals.cartItemCount);
       next();
-    }
-  } catch (error) {
-    console.error('Error in cartItemCount middleware:', error);
-    res.locals.cartItemCount = 0;
+    });
+  } else {
+    const cart = req.session.cart || [];
+    res.locals.cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+    console.log('Middleware: userId:', res.locals.userId, 'cartItemCount:', res.locals.cartItemCount);
     next();
   }
 });
+
 app.use('/cart', cartRoutes); // Add Cart routes
 // Authentication routes
 app.use('/auth', authRoutes);
