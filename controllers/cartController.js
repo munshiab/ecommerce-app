@@ -1,6 +1,8 @@
 const db = require('../config/db');
 exports.viewCart = (req, res) => {
-  if (req.session.user_id) {
+  if (req.session.userId) {
+    console.log('Logged-in user ID:', req.session.userId);
+
     // Fetch cart from database for logged-in users
     const query = `
       SELECT 
@@ -13,25 +15,60 @@ exports.viewCart = (req, res) => {
       JOIN Products ON Cart.product_id = Products.product_id
       WHERE Cart.user_id = ?
     `;
-    db.query(query, [req.session.user_id], (err, results) => {
+    db.query(query, [req.session.userId], (err, results) => {
       if (err) {
         console.error('Error fetching cart:', err);
         return res.status(500).send('Error fetching cart');
       }
-      res.render('cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: results });
+      console.log('Database cart items:', results);
+      res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: results });
     });
   } else {
-    // Fetch cart from session for non-logged-in users
+    console.log('Session cart:', req.session.cart);
+
     const sessionCart = req.session.cart || [];
-    const cartItems = sessionCart.map((item) => ({
-      product_name: `Product ID ${item.product_id}`, // Placeholder for product name
-      price: 0, // Placeholder for price
-      quantity: item.quantity,
-      total_price: 0, // Placeholder for total price
-    }));
-    res.render('cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems });
+
+    if (sessionCart.length === 0) {
+      return res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: [] });
+    }
+
+    const productIds = sessionCart.map((item) => Number(item.product_id)); // Convert session product_id to numbers
+
+    const query = `
+      SELECT 
+        Products.product_id,
+        Products.product_name,
+        Products.price
+      FROM Products
+      WHERE Products.product_id IN (?)
+    `;
+    db.query(query, [productIds], (err, products) => {
+      if (err) {
+        console.error('Error fetching product details:', err);
+        return res.status(500).send('Error fetching cart');
+      }
+
+      console.log('Product details fetched for session cart:', products);
+
+      const cartItems = products.map((product) => {
+        const sessionItem = sessionCart.find((item) => Number(item.product_id) === product.product_id); // Match using Number
+        const quantity = sessionItem ? sessionItem.quantity : 0;
+        const total_price = (parseFloat(product.price) || 0) * quantity;
+
+        return {
+          product_name: product.product_name,
+          price: parseFloat(product.price) || 0,
+          quantity,
+          total_price,
+        };
+      });
+
+      console.log('Final cart items to render:', cartItems);
+      res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems });
+    });
   }
 };
+
 
 exports.addToCart = (req, res) => {
   const { product_id } = req.body;
@@ -106,68 +143,7 @@ exports.getCartCount = (req, res) => {
     res.json({ cartItemCount });
   }
 };
-
-
-/* exports.addToCart = (req, res) => {
-  const { product_id, user_id } = req.body; // Assuming user_id is available in req.body (e.g., from session)
-  
-  // Check if the product is already in the cart
-  const queryCheck = 'SELECT * FROM Cart WHERE user_id = ? AND product_id = ?';
-  db.query(queryCheck, [user_id, product_id], (err, results) => {
-    if (err) {
-      console.error('Error checking cart:', err);
-      return res.status(500).send('Error adding to cart');
-    }
-
-    if (results.length > 0) {
-      // Update quantity if the product already exists in the cart
-      const queryUpdate = 'UPDATE Cart SET quantity = quantity + 1 WHERE user_id = ? AND product_id = ?';
-      db.query(queryUpdate, [user_id, product_id], (err) => {
-        if (err) {
-          console.error('Error updating cart:', err);
-          return res.status(500).send('Error adding to cart');
-        }
-        res.json({ message: 'Product quantity updated in cart' });
-      });
-    } else {
-      // Insert a new item into the cart
-      const queryInsert = 'INSERT INTO Cart (user_id, product_id, quantity) VALUES (?, ?, 1)';
-      db.query(queryInsert, [user_id, product_id], (err) => {
-        if (err) {
-          console.error('Error inserting into cart:', err);
-          return res.status(500).send('Error adding to cart');
-        }
-        res.json({ message: 'Product added to cart' });
-      });
-    }
-  });
-}; */
-
-exports.viewCart = (req, res) => {
-  const { user_id } = req.body; // Assuming user_id is available (e.g., from session)
-
-  const query = `
-    SELECT 
-      Cart.cart_id,
-      Products.product_name,
-      Products.price,
-      Cart.quantity,
-      (Products.price * Cart.quantity) AS total_price
-    FROM Cart
-    JOIN Products ON Cart.product_id = Products.product_id
-    WHERE Cart.user_id = ?
-  `;
-
-  db.query(query, [user_id], (err, results) => {
-    if (err) {
-      console.error('Error fetching cart:', err);
-      return res.status(500).send('Error fetching cart');
-    }
-
-    res.render('cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: results });
-  });
-};
-exports.getCartCount = (req, res) => {
+/* exports.getCartCount = (req, res) => {
   if (req.session.userId) {
     // Fetch cart count from the database for logged-in users
     const query = 'SELECT SUM(quantity) AS cartItemCount FROM Cart WHERE user_id = ?';
@@ -185,37 +161,4 @@ exports.getCartCount = (req, res) => {
     res.json({ cartItemCount });
   }
 };
-
-exports.viewCart = (req, res) => {
-  if (req.session.userId) {
-    // Fetch cart from database for logged-in users
-    const query = `
-      SELECT 
-        Cart.cart_id,
-        Products.product_name,
-        Products.price,
-        Cart.quantity,
-        (Products.price * Cart.quantity) AS total_price
-      FROM Cart
-      JOIN Products ON Cart.product_id = Products.product_id
-      WHERE Cart.user_id = ?
-    `;
-    db.query(query, [req.session.userId], (err, results) => {
-      if (err) {
-        console.error('Error fetching cart:', err);
-        return res.status(500).send('Error fetching cart');
-      }
-      res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: results });
-    });
-  } else {
-    // Fetch cart from session for non-logged-in users
-    const sessionCart = req.session.cart || [];
-    const cartItems = sessionCart.map((item) => ({
-      product_name: `Product ID ${item.product_id}`, // Placeholder name
-      price: 0, // Placeholder price
-      quantity: item.quantity,
-      total_price: 0, // Placeholder total
-    }));
-    res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems });
-  }
-};
+ */
