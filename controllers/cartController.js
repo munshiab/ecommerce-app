@@ -162,3 +162,49 @@ exports.getCartCount = (req, res) => {
   }
 };
  */
+exports.removeFromCart = (req, res) => {
+  const { product_id } = req.body;
+  console.log('Received product_id:', product_id);
+
+  if (req.session.userId) {
+    console.log(`Removing product ${product_id} from database cart for user ${req.session.userId}`);
+    const query = 'DELETE FROM Cart WHERE user_id = ? AND product_id = ?';
+    db.query(query, [req.session.userId, product_id], (err) => {
+      if (err) {
+        console.error('Error removing item from cart:', err);
+        return res.status(500).send('Error removing item from cart');
+      }
+      res.json({ success: true, message: 'Item removed from cart' });
+    });
+  } else {
+    console.log(`Removing product ${product_id} from session cart`);
+    req.session.cart = req.session.cart.filter((item) => String(item.product_id) !== String(product_id));
+    console.log('Updated session cart:', req.session.cart);
+    res.json({ success: true, message: 'Item removed from session cart' });
+  }
+};
+
+
+exports.updateCartQuantity = (req, res) => {
+  const { product_id, quantity } = req.body;
+
+  if (req.session.userId) {
+    console.log(`Updating product ${product_id} to quantity ${quantity} in database cart for user ${req.session.userId}`);
+    const query = 'UPDATE Cart SET quantity = ? WHERE user_id = ? AND product_id = ?';
+    db.query(query, [quantity, req.session.userId, product_id], (err) => {
+      if (err) {
+        console.error('Error updating cart quantity:', err);
+        return res.status(500).send('Error updating cart quantity');
+      }
+      res.json({ success: true, message: 'Cart quantity updated' });
+    });
+  } else {
+    console.log(`Updating product ${product_id} to quantity ${quantity} in session cart`);
+    const cartItem = req.session.cart.find((item) => item.product_id === product_id);
+    if (cartItem) {
+      cartItem.quantity = quantity;
+    }
+    console.log('Updated session cart:', req.session.cart);
+    res.json({ success: true, message: 'Cart quantity updated in session' });
+  }
+};
