@@ -89,6 +89,7 @@ app.use('/auth', authRoutes);
 app.use('/home', homeRoutes);
 app.use('/product',productRoutes);
 
+
 // Home route for regular users
 /* app.get('/', (req, res) => {
   res.render('index', { layout: 'layouts/mainLayout', theme: 'user' });

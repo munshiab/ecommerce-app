@@ -1,3 +1,70 @@
+<script>
+  console.log('JavaScript loaded for cart page');
+  // Remove item from cart
+  async function removeFromCart(productId) {
+  console.log(`Remove button clicked for product ID: ${productId}`); // Debugging log
+
+  if (!productId) {
+    console.error('Invalid product ID');
+    return;
+  }
+
+  try {
+    const response = await fetch('/cart/remove', { // Ensure the URL matches your backend route
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ product_id: productId }),
+    });
+
+    if (!response.ok) {
+      console.error('Failed to remove item:', response.statusText);
+      return;
+    }
+
+    const data = await response.json();
+    console.log('Remove response:', data); // Debugging log
+
+    if (data.success) {
+      M.toast({ html: data.message, classes: 'green darken-1' });
+      location.reload(); // Reload the cart page
+    } else {
+      M.toast({ html: 'Error removing item', classes: 'red darken-1' });
+    }
+  } catch (error) {
+    console.error('Error removing item:', error);
+  }
+}
+
+  // Update cart quantity
+  async function updateQuantity(productId, quantity) {
+  try {
+    console.log(`Updating product ${productId} to quantity ${quantity}`); // Debug log
+    const response = await fetch('/cart/update-quantity', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ product_id: productId, quantity }),
+    });
+
+    const data = await response.json();
+    console.log('Update quantity response:', data); // Debug log
+
+    if (data.success) {
+      M.toast({ html: data.message, classes: 'green darken-1' });
+      location.reload(); // Reload the cart page
+    } else {
+      M.toast({ html: 'Error updating quantity', classes: 'red darken-1' });
+    }
+  } catch (error) {
+    console.error('Error updating quantity:', error);
+  }
+}
+
+</script>
+
 <div class="container">
   <h3 class="center-align">Your Cart</h3>
 
@@ -35,7 +102,7 @@
               >
                 Remove
               </button>
-            </td>            
+            </td>                                           
           </tr>
         <% }) %>
       </tbody>
@@ -51,63 +118,6 @@
   <% } %>
 </div>
 
-<script>
-  // Remove item from cart
-  async function removeFromCart(productId) {
-  try {
-    console.log(`Removing product with ID: ${productId}`); // Debugging log
-
-    const response = await fetch('/cart/remove', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ product_id: productId }),
-    });
-
-    const data = await response.json();
-    console.log('Remove response:', data); // Debugging log
-
-    if (data.success) {
-      M.toast({ html: data.message, classes: 'green darken-1' });
-      location.reload(); // Reload the cart page
-    } else {
-      M.toast({ html: 'Error removing item', classes: 'red darken-1' });
-    }
-  } catch (error) {
-    console.error('Error removing item:', error);
-  }
-}
-
-
-
-  // Update cart quantity
-  async function updateQuantity(productId, quantity) {
-  try {
-    console.log(`Updating product ${productId} to quantity ${quantity}`); // Debug log
-    const response = await fetch('/cart/update-quantity', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ product_id: productId, quantity }),
-    });
-
-    const data = await response.json();
-    console.log('Update quantity response:', data); // Debug log
-
-    if (data.success) {
-      M.toast({ html: data.message, classes: 'green darken-1' });
-      location.reload(); // Reload the cart page
-    } else {
-      M.toast({ html: 'Error updating quantity', classes: 'red darken-1' });
-    }
-  } catch (error) {
-    console.error('Error updating quantity:', error);
-  }
-}
-
-</script>
 
 <!-- <div class="container">
   <h3 class="center-align">Your Cart</h3>

@@ -1,6 +1,64 @@
 const db = require('../config/db');
 exports.viewCart = (req, res) => {
   if (req.session.userId) {
+    // Fetch cart from database for logged-in users
+    const query = `
+      SELECT 
+        Cart.product_id,
+        Products.product_name,
+        Products.price,
+        Cart.quantity,
+        (Products.price * Cart.quantity) AS total_price
+      FROM Cart
+      JOIN Products ON Cart.product_id = Products.product_id
+      WHERE Cart.user_id = ?
+    `;
+    db.query(query, [req.session.userId], (err, results) => {
+      if (err) {
+        console.error('Error fetching cart:', err);
+        return res.status(500).send('Error fetching cart');
+      }
+      res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: results });
+    });
+  } else {
+    console.log('Session cart:', req.session.cart);
+    // Fetch cart from session for non-logged-in users
+    const sessionCart = req.session.cart || [];
+    const productIds = sessionCart.map((item) => item.product_id);
+    
+    // Fetch product details for session cart
+    if (productIds.length > 0) {
+      const query = `SELECT product_id, product_name, price FROM Products WHERE product_id IN (?)`;
+      db.query(query, [productIds], (err, productDetails) => {
+        if (err) {
+          console.error('Error fetching product details:', err);
+          return res.status(500).send('Error fetching cart');
+        }
+        console.log('Product details fetched for session cart:', productDetails);
+        // Map session cart items with product details
+        const cartItems = sessionCart.map((item) => {
+          const product = productDetails.find((p) => p.product_id === parseInt(item.product_id));
+          return {
+            product_id: item.product_id, // Include product_id here
+            product_name: product ? product.product_name : `Product ID ${item.product_id}`,
+            price: product ? parseFloat(product.price) : 0,
+            quantity: item.quantity,
+            total_price: product ? parseFloat(product.price) * item.quantity : 0,
+          };
+        });
+
+        console.log('Final cart items to render:', cartItems); // Debugging log
+        res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems });
+      });
+    } else {
+      // Empty cart
+      res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: [] });
+    }
+  }
+};
+
+/* exports.viewCart = (req, res) => {
+  if (req.session.userId) {
     console.log('Logged-in user ID:', req.session.userId);
 
     // Fetch cart from database for logged-in users
@@ -68,7 +126,7 @@ exports.viewCart = (req, res) => {
     });
   }
 };
-
+ */
 
 exports.addToCart = (req, res) => {
   const { product_id } = req.body;
@@ -163,27 +221,35 @@ exports.getCartCount = (req, res) => {
 };
  */
 exports.removeFromCart = (req, res) => {
+  console.log('Remove from cart called'); // Debugging log
+  console.log('Request body:', req.body); // Debugging log
+
   const { product_id } = req.body;
-  console.log('Received product_id:', product_id);
+
+  if (!product_id) {
+    console.error('No product_id provided'); // Debugging log
+    return res.status(400).json({ success: false, message: 'No product_id provided' });
+  }
 
   if (req.session.userId) {
+    // Remove from database cart
     console.log(`Removing product ${product_id} from database cart for user ${req.session.userId}`);
     const query = 'DELETE FROM Cart WHERE user_id = ? AND product_id = ?';
     db.query(query, [req.session.userId, product_id], (err) => {
       if (err) {
         console.error('Error removing item from cart:', err);
-        return res.status(500).send('Error removing item from cart');
+        return res.status(500).json({ success: false, message: 'Error removing item from cart' });
       }
       res.json({ success: true, message: 'Item removed from cart' });
     });
   } else {
+    // Remove from session cart
     console.log(`Removing product ${product_id} from session cart`);
     req.session.cart = req.session.cart.filter((item) => String(item.product_id) !== String(product_id));
     console.log('Updated session cart:', req.session.cart);
     res.json({ success: true, message: 'Item removed from session cart' });
   }
 };
-
 
 exports.updateCartQuantity = (req, res) => {
   const { product_id, quantity } = req.body;
