@@ -6,6 +6,81 @@ exports.viewCart = (req, res) => {
         Cart.product_id,
         Products.product_name,
         Products.price,
+        Products.image_url,
+        Cart.quantity,
+        (Products.price * Cart.quantity) AS total_price
+      FROM Cart
+      JOIN Products ON Cart.product_id = Products.product_id
+      WHERE Cart.user_id = ?
+    `;
+    db.query(query, [req.session.userId], (err, results) => {
+      if (err) {
+        console.error('Error fetching cart:', err);
+        return res.status(500).send('Error fetching cart');
+      }
+
+      const totalAmount = results.reduce((sum, item) => sum + parseFloat(item.total_price || 0), 0);
+      console.log('Total Amount:', totalAmount);
+
+      res.render('cart/cart', { 
+        layout: 'layouts/mainLayout', 
+        theme: 'user', 
+        cartItems: results, 
+        totalAmount: totalAmount.toFixed(2),
+      });
+    });
+  } else {
+    const sessionCart = req.session.cart || [];
+    const productIds = sessionCart.map((item) => item.product_id);
+
+    if (productIds.length > 0) {
+      const query = `SELECT product_id, product_name, price, image_url FROM Products WHERE product_id IN (?)`;
+      db.query(query, [productIds], (err, productDetails) => {
+        if (err) {
+          console.error('Error fetching product details:', err);
+          return res.status(500).send('Error fetching cart');
+        }
+
+        const cartItems = sessionCart.map((item) => {
+          const product = productDetails.find((p) => p.product_id === parseInt(item.product_id));
+          return {
+            product_id: item.product_id,
+            product_name: product ? product.product_name : `Product ID ${item.product_id}`,
+            price: product ? parseFloat(product.price) : 0,
+            image_url: product ? product.image_url : '',
+            quantity: item.quantity,
+            total_price: product ? parseFloat(product.price) * item.quantity : 0,
+          };
+        });
+
+        const totalAmount = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+        console.log('Session Cart Total Amount:', totalAmount);
+
+        res.render('cart/cart', { 
+          layout: 'layouts/mainLayout', 
+          theme: 'user', 
+          cartItems, 
+          totalAmount: totalAmount.toFixed(2),
+        });
+      });
+    } else {
+      res.render('cart/cart', { 
+        layout: 'layouts/mainLayout', 
+        theme: 'user', 
+        cartItems: [], 
+        totalAmount: '0.00',
+      });
+    }
+  }
+};
+
+/* exports.viewCart = (req, res) => {
+  if (req.session.userId) {
+    const query = `
+      SELECT 
+        Cart.product_id,
+        Products.product_name,
+        Products.price,
         Products.image_url, -- Include image_url
         Cart.quantity,
         (Products.price * Cart.quantity) AS total_price
@@ -51,7 +126,7 @@ exports.viewCart = (req, res) => {
     }
   }
 };
-
+ */
 /* exports.viewCart = (req, res) => {
   if (req.session.userId) {
     // Fetch cart from database for logged-in users
@@ -181,7 +256,7 @@ exports.viewCart = (req, res) => {
 };
  */
 
-exports.addToCart = (req, res) => {
+/* exports.addToCart = (req, res) => {
   const { product_id } = req.body;
   const user_id = req.session.userId || null; // Use session userId if available
   const quantity = 1; // Default quantity
@@ -235,7 +310,78 @@ exports.addToCart = (req, res) => {
     req.session.cart = cart;
     res.json({ message: 'Product added to session cart', success: true });
   }
+}; */
+exports.addToCart = (req, res) => {
+  const { product_id } = req.body;
+  const user_id = req.session.userId || null; // Use session userId if available
+  const quantity = 1; // Default quantity
+
+  if (!req.session.cart) {
+    req.session.cart = [];
+  }
+
+  if (user_id) {
+    // Logged-in user: save to database
+    const queryCheck = 'SELECT * FROM Cart WHERE user_id = ? AND product_id = ?';
+    db.query(queryCheck, [user_id, product_id], (err, results) => {
+      if (err) {
+        console.error('Error checking cart:', err);
+        return res.status(500).json({ message: 'Error adding to cart' });
+      }
+
+      if (results.length > 0) {
+        // Update quantity
+        const queryUpdate = 'UPDATE Cart SET quantity = quantity + ? WHERE user_id = ? AND product_id = ?';
+        db.query(queryUpdate, [quantity, user_id, product_id], (err) => {
+          if (err) {
+            console.error('Error updating cart:', err);
+            return res.status(500).json({ message: 'Error adding to cart' });
+          }
+          res.json({ message: 'Cart updated', success: true });
+        });
+      } else {
+        // Insert new product
+        const queryInsert = 'INSERT INTO Cart (user_id, product_id, quantity) VALUES (?, ?, ?)';
+        db.query(queryInsert, [user_id, product_id, quantity], (err) => {
+          if (err) {
+            console.error('Error inserting into cart:', err);
+            return res.status(500).json({ message: 'Error adding to cart' });
+          }
+          res.json({ message: 'Product added to cart', success: true });
+        });
+      }
+    });
+  } else {
+    // Non-logged-in user: save to session cart
+    const cart = req.session.cart;
+
+    // Fetch product details for the session cart
+    const productDetailsQuery = 'SELECT product_id, price FROM Products WHERE product_id = ?';
+    db.query(productDetailsQuery, [product_id], (err, results) => {
+      if (err || results.length === 0) {
+        console.error('Error fetching product details for session cart:', err);
+        return res.status(500).json({ message: 'Error adding to cart' });
+      }
+
+      const productDetails = results[0];
+      const existingItem = cart.find((item) => String(item.product_id) === String(product_id));
+
+      if (existingItem) {
+        existingItem.quantity += quantity;
+      } else {
+        cart.push({
+          product_id: productDetails.product_id,
+          price: parseFloat(productDetails.price), // Ensure price is stored
+          quantity: quantity,
+        });
+      }
+
+      req.session.cart = cart; // Update session cart
+      res.json({ message: 'Product added to session cart', success: true });
+    });
+  }
 };
+
 exports.getCartCount = (req, res) => {
   if (req.session.userId) {
     // Logged-in user: fetch from database

@@ -45,6 +45,83 @@ exports.login = (req, res) => {
     req.session.userId = user.user_id;
     req.session.roleId = user.role_id;
 
+    // Merge session cart into database cart
+    const sessionCart = req.session.cart || [];
+    if (sessionCart.length > 0) {
+      const mergeCartQuery = `
+        INSERT INTO Cart (user_id, product_id, quantity)
+        VALUES ? 
+        ON DUPLICATE KEY UPDATE 
+        quantity = quantity + VALUES(quantity)
+      `;
+
+      const cartData = sessionCart.map((item) => [user.user_id, item.product_id, item.quantity]);
+
+      db.query(mergeCartQuery, [cartData], (err) => {
+        if (err) {
+          console.error('Error merging session cart into database:', err);
+          return res.status(500).send('Error merging cart');
+        }
+
+        // Clear session cart after merging
+        req.session.cart = [];
+
+        // Recalculate total price in the database
+        const recalculateQuery = `
+          SELECT SUM(Products.price * Cart.quantity) AS total_price
+          FROM Cart
+          JOIN Products ON Cart.product_id = Products.product_id
+          WHERE Cart.user_id = ?
+        `;
+
+        db.query(recalculateQuery, [user.user_id], (err, totalResult) => {
+          if (err) {
+            console.error('Error recalculating cart total:', err);
+            return res.status(500).send('Error recalculating cart total');
+          }
+
+          console.log('Cart Total After Merge:', totalResult[0]?.total_price || 0);
+
+          // Redirect based on user role
+          if (user.role_id === 3) {
+            return res.redirect('/admin/dashboard');
+          } else if (user.role_id === 2) {
+            return res.redirect('/business/home');
+          } else {
+            return res.redirect('/cart'); // Redirect to the cart page to view the merged cart
+          }
+        });
+      });
+    } else {
+      // No session cart to merge; redirect directly
+      if (user.role_id === 3) {
+        return res.redirect('/admin/dashboard');
+      } else if (user.role_id === 2) {
+        return res.redirect('/business/home');
+      } else {
+        return res.redirect('/cart');
+      }
+    }
+  });
+};
+/* exports.login = (req, res) => {
+  const { email, password } = req.body;
+
+  User.findByEmail(email, (err, results) => {
+    if (err || results.length === 0) {
+      return res.status(401).render('auth/login', { layout: 'layouts/mainLayout', error: 'User not found' });
+    }
+
+    const user = results[0];
+
+    if (!bcrypt.compareSync(password, user.password)) {
+      return res.status(401).render('auth/login', { layout: 'layouts/mainLayout', error: 'Incorrect password' });
+    }
+
+    // Set session variables
+    req.session.userId = user.user_id;
+    req.session.roleId = user.role_id;
+
     // Merge session cart with database cart if cart exists in session
     if (req.session.cart) {
       const sessionCart = req.session.cart;
@@ -92,7 +169,7 @@ exports.login = (req, res) => {
     }
   });
 };
-
+ */
 /* // Handle Login Form Submission - 03-12-2024
 exports.login = (req, res) => {
   const { email, password } = req.body;

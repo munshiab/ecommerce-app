@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const homeRoutes = require('./routes/homeRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
+const checkoutRoutes = require('./routes/checkoutRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -88,7 +89,7 @@ app.use('/cart', cartRoutes); // Add Cart routes
 app.use('/auth', authRoutes);
 app.use('/home', homeRoutes);
 app.use('/product',productRoutes);
-
+app.use('/checkout', checkoutRoutes);
 
 // Home route for regular users
 /* app.get('/', (req, res) => {

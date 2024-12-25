@@ -1,0 +1,54 @@
+<div class="container">
+  <h3 class="center-align">Checkout</h3>
+
+  <form action="/checkout/confirm" method="POST" class="checkout-form">
+    <!-- Address -->
+    <div class="row">
+      <div class="input-field col s12">
+        <textarea id="address" name="address" class="materialize-textarea" required></textarea>
+        <label for="address">Delivery Address</label>
+      </div>
+    </div>
+
+    <!-- Payment Method -->
+    <div class="row">
+      <div class="input-field col s12">
+        <select name="payment_method" id="payment_method" required>
+          <option value="" disabled selected>Select Payment Method</option>
+          <option value="Credit Card">Credit Card</option>
+          <option value="PayPal">PayPal</option>
+          <option value="Bank Transfer">Bank Transfer</option>
+        </select>
+        <label for="payment_method">Payment Method</label>
+      </div>
+    </div>    
+
+    <!-- Total Amount -->
+    <div class="row">
+      <div class="input-field col s12">
+        <input 
+          type="text" 
+          id="total_amount" 
+          name="total_amount" 
+          value="$<%= totalAmount %>" 
+          readonly 
+          class="validate"
+        >
+        <label for="total_amount" class="active">Total Amount</label>
+      </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="row center-align">
+      <button type="submit" class="btn waves-effect waves-light">Complete Transaction</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Initialize Materialize components
+  document.addEventListener('DOMContentLoaded', function() {
+    var elems = document.querySelectorAll('select');
+    M.FormSelect.init(elems);
+  });
+</script>
