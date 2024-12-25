@@ -11,7 +11,8 @@ router.get('/', cartController.viewCart);
     next();
   }); */
   
-router.post('/update-quantity', cartController.updateCartQuantity);
+//router.post('/update-quantity', cartController.updateCartQuantity);
+router.post('/update', cartController.updateCartQuantity);
 
 
 module.exports = router;

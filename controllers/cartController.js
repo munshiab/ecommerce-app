@@ -1,6 +1,59 @@
 const db = require('../config/db');
 exports.viewCart = (req, res) => {
   if (req.session.userId) {
+    const query = `
+      SELECT 
+        Cart.product_id,
+        Products.product_name,
+        Products.price,
+        Products.image_url, -- Include image_url
+        Cart.quantity,
+        (Products.price * Cart.quantity) AS total_price
+      FROM Cart
+      JOIN Products ON Cart.product_id = Products.product_id
+      WHERE Cart.user_id = ?
+    `;
+    db.query(query, [req.session.userId], (err, results) => {
+      if (err) {
+        console.error('Error fetching cart:', err);
+        return res.status(500).send('Error fetching cart');
+      }
+      res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: results });
+    });
+  } else {
+    const sessionCart = req.session.cart || [];
+    const productIds = sessionCart.map((item) => item.product_id);
+
+    if (productIds.length > 0) {
+      const query = `SELECT product_id, product_name, price, image_url FROM Products WHERE product_id IN (?)`;
+      db.query(query, [productIds], (err, productDetails) => {
+        if (err) {
+          console.error('Error fetching product details:', err);
+          return res.status(500).send('Error fetching cart');
+        }
+
+        const cartItems = sessionCart.map((item) => {
+          const product = productDetails.find((p) => p.product_id === parseInt(item.product_id));
+          return {
+            product_id: item.product_id,
+            product_name: product ? product.product_name : `Product ID ${item.product_id}`,
+            price: product ? parseFloat(product.price) : 0,
+            image_url: product ? product.image_url : '', // Include image_url here
+            quantity: item.quantity,
+            total_price: product ? parseFloat(product.price) * item.quantity : 0,
+          };
+        });
+
+        res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems });
+      });
+    } else {
+      res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: [] });
+    }
+  }
+};
+
+/* exports.viewCart = (req, res) => {
+  if (req.session.userId) {
     // Fetch cart from database for logged-in users
     const query = `
       SELECT 
@@ -55,7 +108,7 @@ exports.viewCart = (req, res) => {
       res.render('cart/cart', { layout: 'layouts/mainLayout', theme: 'user', cartItems: [] });
     }
   }
-};
+}; */
 
 /* exports.viewCart = (req, res) => {
   if (req.session.userId) {
@@ -251,7 +304,7 @@ exports.removeFromCart = (req, res) => {
   }
 };
 
-exports.updateCartQuantity = (req, res) => {
+/* exports.updateCartQuantity = (req, res) => {
   const { product_id, quantity } = req.body;
 
   if (req.session.userId) {
@@ -272,5 +325,37 @@ exports.updateCartQuantity = (req, res) => {
     }
     console.log('Updated session cart:', req.session.cart);
     res.json({ success: true, message: 'Cart quantity updated in session' });
+  }
+};
+ */
+exports.updateCartQuantity = (req, res) => {
+  const { product_id, quantity } = req.body;
+
+  if (!product_id || quantity < 1) {
+    return res.status(400).json({ success: false, message: 'Invalid product or quantity' });
+  }
+
+  if (req.session.userId) {
+    // Update quantity in database for logged-in users
+    const query = 'UPDATE Cart SET quantity = ? WHERE user_id = ? AND product_id = ?';
+    db.query(query, [quantity, req.session.userId, product_id], (err) => {
+      if (err) {
+        console.error('Error updating cart:', err);
+        return res.status(500).json({ success: false, message: 'Error updating cart' });
+      }
+      res.json({ success: true, message: 'Cart updated successfully' });
+    });
+  } else {
+    // Update quantity in session cart for non-logged-in users
+    const cart = req.session.cart || [];
+    const item = cart.find((item) => String(item.product_id) === String(product_id));
+
+    if (item) {
+      item.quantity = quantity;
+      req.session.cart = cart;
+      res.json({ success: true, message: 'Cart updated successfully' });
+    } else {
+      res.status(400).json({ success: false, message: 'Item not found in cart' });
+    }
   }
 };
