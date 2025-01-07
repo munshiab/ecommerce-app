@@ -12,6 +12,8 @@ router.get('/', cartController.viewCart);
   }); */
   
 //router.post('/update-quantity', cartController.updateCartQuantity);
+router.post('/update-quantity', cartController.updateCartQuantity);
+
 router.post('/update', cartController.updateCartQuantity);
 
 

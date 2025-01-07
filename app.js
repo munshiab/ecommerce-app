@@ -7,6 +7,7 @@ const homeRoutes = require('./routes/homeRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const checkoutRoutes = require('./routes/checkoutRoutes');
+const authMiddleware = require('./middleware/authMiddleware');
 require('dotenv').config();
 
 const app = express();
@@ -63,6 +64,27 @@ app.use((req, res, next) => {
   }
 }); */
 // Corrected middleware to set userId and cartItemCount
+/* app.use((req, res, next) => {
+  res.locals.userId = req.session.userId || null;
+
+  if (req.session.userId) {
+    const query = 'SELECT SUM(quantity) AS cartItemCount FROM Cart WHERE user_id = ?';
+    db.query(query, [req.session.userId], (err, results) => {
+      if (err) {
+        console.error('Error fetching cart count:', err);
+        res.locals.cartItemCount = 0;
+        return next();
+      }
+      res.locals.cartItemCount = results[0]?.cartItemCount || 0;
+      next();
+    });
+  } else {
+    const cart = req.session.cart || [];
+    res.locals.cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+    next();
+  }
+}); */
+// Middleware for setting userId and cart count
 app.use((req, res, next) => {
   res.locals.userId = req.session.userId || null;
 
@@ -83,7 +105,6 @@ app.use((req, res, next) => {
     next();
   }
 });
-
 app.use('/cart', cartRoutes); // Add Cart routes
 // Authentication routes
 app.use('/auth', authRoutes);

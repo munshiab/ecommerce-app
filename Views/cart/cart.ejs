@@ -3,12 +3,15 @@
 
   <% if (cartItems.length === 0) { %>
     <p class="center-align">Your cart is empty. Start adding some products!</p>
+    <div class="center-align">
+      <a href="/products" class="btn waves-effect waves-light">Shop Now</a>
+    </div>
   <% } else { %>
     <table class="highlight responsive-table">
       <thead>
         <tr>
-          <th>Image</th>
           <th>Product</th>
+          <th>Image</th>
           <th>Price</th>
           <th>Quantity</th>
           <th>Total</th>
@@ -18,99 +21,114 @@
       <tbody>
         <% cartItems.forEach(item => { %>
           <tr>
-            <td>
-              <img 
-                src="<%= item.image_url %>" 
-                alt="<%= item.product_name %>" 
-                style="width: 50px; height: 50px; object-fit: cover;"
-              >
-            </td>
             <td><%= item.product_name %></td>
-            <td>$<%= (parseFloat(item.price) || 0).toFixed(2) %></td>
+            <td><img src="<%= item.image_url %>" alt="<%= item.product_name %>" class="cart-product-image"></td>
+            <td>$<%= parseFloat(item.price).toFixed(2) %></td>
             <td>
-              <input 
-                type="number" 
-                min="1" 
-                value="<%= item.quantity %>" 
-                data-product-id="<%= item.product_id %>" 
-                onchange="updateQuantity(this)"
-                style="width: 60px;"
-              >
+              <div class="quantity-controls">
+                <button 
+                  class="btn-small red lighten-2 decrease-quantity" 
+                  onclick="updateCartQuantity('<%= item.product_id %>', <%= item.quantity - 1 %>)">-</button>
+                <input 
+                  type="number" 
+                  id="quantity-<%= item.product_id %>" 
+                  value="<%= item.quantity %>" 
+                  readonly>
+                <button 
+                  class="btn-small green lighten-2 increase-quantity" 
+                  onclick="updateCartQuantity('<%= item.product_id %>', <%= item.quantity + 1 %>)">+</button>
+              </div>
             </td>
-            <td>$<%= (parseFloat(item.total_price) || 0).toFixed(2) %></td>
+            <td>$<%= parseFloat(item.total_price).toFixed(2) %></td>
             <td>
               <button 
-                class="btn red lighten-1" 
-                onclick="removeFromCart('<%= item.product_id %>')"
-              >
-                Remove
-              </button>
+                class="btn red darken-2" 
+                onclick="removeFromCart('<%= item.product_id %>')">Remove</button>
             </td>
           </tr>
         <% }) %>
       </tbody>
     </table>
 
+    <!-- Total Amount -->
     <div class="right-align">
-      <h5>Total: $<%= totalAmount %></h5>
+      <h5>Total Amount: $<span id="total-amount"><%= totalAmount %></span></h5>
     </div>
 
+    <!-- Checkout Button -->
     <div class="center-align">
       <a href="/checkout" class="btn waves-effect waves-light">Proceed to Checkout</a>
     </div>
   <% } %>
 </div>
 
-
 <script>
-  // Handle updating cart quantity
+  // Function to update cart quantity
   async function updateCartQuantity(productId, quantity) {
-    if (quantity < 1) {
-      M.toast({ html: 'Quantity must be at least 1', classes: 'red darken-1' });
-      return;
+    if (quantity <= 0) {
+      return removeFromCart(productId);
     }
 
     try {
       const response = await fetch('/cart/update', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ product_id: productId, quantity: quantity }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, quantity }),
       });
 
       const data = await response.json();
+
       if (data.success) {
+        document.getElementById('total-amount').innerText = data.totalAmount;
         M.toast({ html: 'Cart updated successfully!', classes: 'green darken-1' });
-        location.reload(); // Reload the cart page
+        location.reload(); // Reload the page to reflect changes
       } else {
-        M.toast({ html: 'Error updating cart', classes: 'red darken-1' });
+        M.toast({ html: data.message || 'Error updating cart!', classes: 'red darken-1' });
       }
     } catch (error) {
       console.error('Error updating cart:', error);
+      M.toast({ html: 'Error updating cart!', classes: 'red darken-1' });
     }
   }
 
-  // Handle removing items from cart
+  // Function to remove item from cart
   async function removeFromCart(productId) {
     try {
       const response = await fetch('/cart/remove', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product_id: productId }),
       });
 
       const data = await response.json();
+
       if (data.success) {
-        M.toast({ html: 'Item removed from cart!', classes: 'green darken-1' });
-        location.reload(); // Reload the cart page
+        document.getElementById('total-amount').innerText = data.totalAmount;
+        M.toast({ html: 'Item removed successfully!', classes: 'green darken-1' });
+        location.reload(); // Reload the page to reflect changes
       } else {
-        M.toast({ html: 'Error removing item', classes: 'red darken-1' });
+        M.toast({ html: data.message || 'Error removing item!', classes: 'red darken-1' });
       }
     } catch (error) {
       console.error('Error removing item:', error);
+      M.toast({ html: 'Error removing item!', classes: 'red darken-1' });
     }
   }
 </script>
+
+<style>
+  .cart-product-image {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+  }
+  .quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .quantity-controls input {
+    width: 50px;
+    text-align: center;
+  }
+</style>

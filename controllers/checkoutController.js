@@ -75,7 +75,7 @@ exports.getCheckoutPage = (req, res) => {
     }
   };
 
- exports.processOrder = (req, res) => {
+/*  exports.processOrder = (req, res) => {
   const userId = req.session.userId || null; // Use session userId for logged-in users
   let { address, payment_method, total_amount } = req.body;
 
@@ -263,5 +263,158 @@ exports.getCheckoutPage = (req, res) => {
         });
       });
     });
+  }; */
+  exports.processOrder = (req, res) => {
+    const userId = req.session.userId || null;
+    const {
+      address,
+      city,
+      state,
+      postal_code,
+      country,
+      payment_method,
+      total_amount,
+    } = req.body;
+  
+    // Parse and validate total_amount
+    const parsedTotalAmount = parseFloat(total_amount.replace('$', '').trim());
+    if (isNaN(parsedTotalAmount) || parsedTotalAmount <= 0) {
+      console.error('Invalid total amount:', total_amount);
+      return res.status(400).send('Invalid total amount');
+    }
+  
+    if (userId) {
+      const cartQuery = `
+        SELECT Cart.product_id, Products.price, Cart.quantity
+        FROM Cart
+        JOIN Products ON Cart.product_id = Products.product_id
+        WHERE Cart.user_id = ?
+      `;
+  
+      db.query(cartQuery, [userId], (err, cartItems) => {
+        if (err) {
+          console.error('Error fetching cart:', err);
+          return res.status(500).send('Error processing order');
+        }
+  
+        if (cartItems.length === 0) {
+          return res.status(400).send('No items in cart to process order');
+        }
+  
+        saveOrder(userId, cartItems, req.body, parsedTotalAmount, res);
+      });
+    } else {
+      const sessionCart = req.session.cart || [];
+      if (sessionCart.length === 0) {
+        return res.status(400).send('No items in cart to process order');
+      }
+  
+      const productIds = sessionCart.map((item) => item.product_id);
+      const productQuery = `SELECT product_id, price FROM Products WHERE product_id IN (?)`;
+  
+      db.query(productQuery, [productIds], (err, productDetails) => {
+        if (err) {
+          console.error('Error fetching product details:', err);
+          return res.status(500).send('Error processing order');
+        }
+  
+        const cartItems = sessionCart.map((item) => {
+          const product = productDetails.find((p) => p.product_id === parseInt(item.product_id, 10));
+          return {
+            product_id: item.product_id,
+            price: product ? parseFloat(product.price) : 0,
+            quantity: item.quantity,
+          };
+        });
+  
+        saveOrder(null, cartItems, req.body, parsedTotalAmount, res);
+      });
+    }
   };
+  
+  function saveOrder(userId, cartItems, body, totalAmount, res) {
+    const { address, city, state, postal_code, country, payment_method } = body;
+  
+    const addressQuery = `
+      INSERT INTO address (user_id, street, city, state, postal_code, country, address_type)
+      VALUES (?, ?, ?, ?, ?, ?, 'Shipping')
+    `;
+  
+    db.query(addressQuery, [userId, address, city, state, postal_code, country], (err, addressResult) => {
+      if (err) {
+        console.error('Error saving address:', err);
+        return res.status(500).send('Error saving address');
+      }
+  
+      const addressId = addressResult.insertId;
+  
+      const orderQuery = `
+        INSERT INTO orders (user_id, order_date, total_amount, status, address_id)
+        VALUES (?, NOW(), ?, 'Pending', ?)
+      `;
+  
+      db.query(orderQuery, [userId, totalAmount, addressId], (err, orderResult) => {
+        if (err) {
+          console.error('Error saving order:', err);
+          return res.status(500).send('Error saving order');
+        }
+  
+        const orderId = orderResult.insertId;
+  
+        const orderItemsQuery = `
+          INSERT INTO orderitems (order_id, product_id, quantity, price)
+          VALUES ?
+        `;
+        const orderItemsValues = cartItems.map((item) => [orderId, item.product_id, item.quantity, item.price]);
+  
+        db.query(orderItemsQuery, [orderItemsValues], (err) => {
+          if (err) {
+            console.error('Error saving order items:', err);
+            return res.status(500).send('Error saving order items');
+          }
+  
+          const paymentQuery = `
+            INSERT INTO payments (user_id, order_id, payment_method, amount, payment_date, status)
+            VALUES (?, ?, ?, ?, NOW(), 'Completed')
+          `;
+  
+          // Map frontend payment method to enum-compatible values
+          const paymentMethodMap = {
+            'Credit Card': 'CreditCard',
+            'PayPal': 'PayPal',
+            'Bank Transfer': 'BankTransfer',
+          };
+          const paymentMethod = paymentMethodMap[payment_method] || null;
+  
+          if (!paymentMethod) {
+            console.error('Invalid payment method:', payment_method);
+            return res.status(400).send('Invalid payment method');
+          }
+  
+          db.query(paymentQuery, [userId, orderId, paymentMethod, totalAmount], (err) => {
+            if (err) {
+              console.error('Error saving payment:', err);
+              return res.status(500).send('Error saving payment');
+            }
+  
+            if (userId) {
+              const clearCartQuery = 'DELETE FROM Cart WHERE user_id = ?';
+              db.query(clearCartQuery, [userId], (err) => {
+                if (err) console.error('Error clearing cart:', err);
+              });
+            } else {
+              req.session.cart = [];
+            }
+  
+            res.render('checkout/success', {
+              layout: 'layouts/mainLayout',
+              theme: 'user',
+              orderId,
+              message: `Your order (ID: ${orderId}) has been placed successfully!`,
+            });
+          });
+        });
+      });
+    });
+  }
   

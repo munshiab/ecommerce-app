@@ -2,16 +2,34 @@
   <h3 class="center-align">Checkout</h3>
 
   <form action="/checkout/confirm" method="POST" class="checkout-form">
-    <!-- Address -->
+    <!-- Address Section -->
     <div class="row">
+      <h5>Shipping Address</h5>
       <div class="input-field col s12">
-        <textarea id="address" name="address" class="materialize-textarea" required></textarea>
-        <label for="address">Delivery Address</label>
+        <input id="street" name="address" type="text" required>
+        <label for="street">Street Address</label>
+      </div>
+      <div class="input-field col s12 m6">
+        <input id="city" name="city" type="text" required>
+        <label for="city">City</label>
+      </div>
+      <div class="input-field col s12 m6">
+        <input id="state" name="state" type="text" required>
+        <label for="state">State</label>
+      </div>
+      <div class="input-field col s12 m6">
+        <input id="postal_code" name="postal_code" type="text" required>
+        <label for="postal_code">Postal Code</label>
+      </div>
+      <div class="input-field col s12 m6">
+        <input id="country" name="country" type="text" required>
+        <label for="country">Country</label>
       </div>
     </div>
 
-    <!-- Payment Method -->
+    <!-- Payment Section -->
     <div class="row">
+      <h5>Payment Details</h5>
       <div class="input-field col s12">
         <select name="payment_method" id="payment_method" required>
           <option value="" disabled selected>Select Payment Method</option>
@@ -21,21 +39,16 @@
         </select>
         <label for="payment_method">Payment Method</label>
       </div>
-    </div>    
-
-    <!-- Total Amount -->
-    <div class="row">
       <div class="input-field col s12">
-        <input 
-          type="text" 
-          id="total_amount" 
-          name="total_amount" 
-          value="$<%= totalAmount %>" 
-          readonly 
-          class="validate"
-        >
-        <label for="total_amount" class="active">Total Amount</label>
-      </div>
+        <input
+          id="total_amount"
+          name="total_amount"
+          type="text"
+          value="<%= totalAmount %>"
+          readonly
+        />
+        <label for="total_amount">Total Amount</label>
+      </div>      
     </div>
 
     <!-- Submit Button -->
@@ -46,9 +59,9 @@
 </div>
 
 <script>
-  // Initialize Materialize components
+  // Initialize Materialize CSS Select
   document.addEventListener('DOMContentLoaded', function() {
-    var elems = document.querySelectorAll('select');
+    const elems = document.querySelectorAll('select');
     M.FormSelect.init(elems);
   });
 </script>

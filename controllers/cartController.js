@@ -449,59 +449,145 @@ exports.removeFromCart = (req, res) => {
     res.json({ success: true, message: 'Item removed from session cart' });
   }
 };
-
+//04-Jan-2024
 /* exports.updateCartQuantity = (req, res) => {
   const { product_id, quantity } = req.body;
+  const user_id = req.session.userId || null;
 
-  if (req.session.userId) {
-    console.log(`Updating product ${product_id} to quantity ${quantity} in database cart for user ${req.session.userId}`);
+  if (user_id) {
+    // For logged-in users, update the quantity in the database
     const query = 'UPDATE Cart SET quantity = ? WHERE user_id = ? AND product_id = ?';
-    db.query(query, [quantity, req.session.userId, product_id], (err) => {
+    db.query(query, [quantity, user_id, product_id], (err) => {
       if (err) {
         console.error('Error updating cart quantity:', err);
-        return res.status(500).send('Error updating cart quantity');
+        return res.status(500).json({ message: 'Error updating cart quantity' });
       }
-      res.json({ success: true, message: 'Cart quantity updated' });
+
+      // Fetch the updated cart to calculate total price
+      const fetchQuery = `
+        SELECT 
+          Cart.quantity, Products.price, 
+          (Cart.quantity * Products.price) AS total_price
+        FROM Cart
+        JOIN Products ON Cart.product_id = Products.product_id
+        WHERE Cart.user_id = ?
+      `;
+      db.query(fetchQuery, [user_id], (err, results) => {
+        if (err) {
+          console.error('Error fetching updated cart:', err);
+          return res.status(500).json({ message: 'Error updating cart quantity' });
+        }
+
+        const totalAmount = results.reduce((sum, item) => sum + item.total_price, 0);
+        res.json({ message: 'Cart updated', success: true, totalAmount });
+      });
     });
   } else {
-    console.log(`Updating product ${product_id} to quantity ${quantity} in session cart`);
-    const cartItem = req.session.cart.find((item) => item.product_id === product_id);
-    if (cartItem) {
-      cartItem.quantity = quantity;
+    // For non-logged-in users, update the session cart
+    if (!req.session.cart) {
+      return res.status(400).json({ message: 'No items in cart' });
     }
-    console.log('Updated session cart:', req.session.cart);
-    res.json({ success: true, message: 'Cart quantity updated in session' });
+
+    const cart = req.session.cart;
+    const item = cart.find((i) => i.product_id === product_id);
+
+    if (item) {
+      item.quantity = parseInt(quantity, 10);
+    }
+
+    req.session.cart = cart;
+
+    // Calculate total amount
+    const productPrices = {}; // Fetch product prices from database or cache if necessary
+    const totalAmount = cart.reduce(
+      (sum, item) => sum + (productPrices[item.product_id] || 0) * item.quantity,
+      0
+    );
+
+    res.json({ message: 'Cart updated', success: true, totalAmount });
   }
 };
  */
 exports.updateCartQuantity = (req, res) => {
   const { product_id, quantity } = req.body;
+  const user_id = req.session.userId || null;
 
-  if (!product_id || quantity < 1) {
-    return res.status(400).json({ success: false, message: 'Invalid product or quantity' });
+  console.log('Request body:', req.body);
+
+  // Validate inputs
+  if (!product_id || isNaN(quantity) || quantity <= 0) {
+    console.error('Invalid product_id or quantity:', product_id, quantity);
+    return res.status(400).json({ success: false, message: 'Invalid product ID or quantity' });
   }
 
-  if (req.session.userId) {
-    // Update quantity in database for logged-in users
+  if (user_id) {
+    // For logged-in users: Update the database
     const query = 'UPDATE Cart SET quantity = ? WHERE user_id = ? AND product_id = ?';
-    db.query(query, [quantity, req.session.userId, product_id], (err) => {
+    db.query(query, [quantity, user_id, product_id], (err) => {
       if (err) {
-        console.error('Error updating cart:', err);
-        return res.status(500).json({ success: false, message: 'Error updating cart' });
+        console.error('Error updating cart quantity in database:', err);
+        return res.status(500).json({ success: false, message: 'Error updating cart quantity' });
       }
-      res.json({ success: true, message: 'Cart updated successfully' });
+
+      // Fetch the updated cart for total amount calculation
+      const fetchQuery = `
+        SELECT 
+          Cart.quantity, Products.price, 
+          (Cart.quantity * Products.price) AS total_price
+        FROM Cart
+        JOIN Products ON Cart.product_id = Products.product_id
+        WHERE Cart.user_id = ?
+      `;
+      db.query(fetchQuery, [user_id], (err, results) => {
+        if (err) {
+          console.error('Error fetching updated cart:', err);
+          return res.status(500).json({ success: false, message: 'Error fetching updated cart' });
+        }
+
+        // Calculate total amount
+        const totalAmount = results.reduce((sum, item) => sum + parseFloat(item.total_price || 0), 0);
+        console.log('Updated cart total amount:', totalAmount);
+
+        res.json({ success: true, message: 'Cart updated successfully', totalAmount: totalAmount.toFixed(2) });
+      });
     });
   } else {
-    // Update quantity in session cart for non-logged-in users
+    // For non-logged-in users: Update the session cart
     const cart = req.session.cart || [];
-    const item = cart.find((item) => String(item.product_id) === String(product_id));
+    const item = cart.find((i) => i.product_id == product_id);
 
     if (item) {
-      item.quantity = quantity;
-      req.session.cart = cart;
-      res.json({ success: true, message: 'Cart updated successfully' });
+      item.quantity = parseInt(quantity, 10);
     } else {
-      res.status(400).json({ success: false, message: 'Item not found in cart' });
+      console.error('Product not found in session cart:', product_id);
+      return res.status(404).json({ success: false, message: 'Product not found in cart' });
     }
+
+    req.session.cart = cart;
+
+    // Fetch product prices for the session cart
+    const productIds = cart.map((item) => item.product_id);
+    const query = 'SELECT product_id, price FROM Products WHERE product_id IN (?)';
+    db.query(query, [productIds], (err, productDetails) => {
+      if (err) {
+        console.error('Error fetching product prices:', err);
+        return res.status(500).json({ success: false, message: 'Error fetching product prices' });
+      }
+
+      // Map product IDs to prices
+      const productPrices = {};
+      productDetails.forEach((product) => {
+        productPrices[product.product_id] = parseFloat(product.price);
+      });
+
+      // Calculate total amount
+      const totalAmount = cart.reduce(
+        (sum, item) => sum + (productPrices[item.product_id] || 0) * item.quantity,
+        0
+      );
+      console.log('Updated session cart total amount:', totalAmount);
+
+      res.json({ success: true, message: 'Cart updated successfully', totalAmount: totalAmount.toFixed(2) });
+    });
   }
 };
