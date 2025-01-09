@@ -1,52 +1,52 @@
-<!-- <h2>Add Product</h2>
-<form action="/business/products/add" method="POST">
-  <label for="categoryId">Category</label>
-  <select name="categoryId" id="categoryId" style="display: block; visibility: visible;"  required>
-    <% categories.forEach(category => { %>
-      <option value="<%= category.category_id %>"><%= category.category_name %></option>
-    <% }) %> 
-  </select>
+<div class="container">
+  <h3 class="center-align">Add Product</h3>
+  <form action="/business/products/add" method="POST" enctype="multipart/form-data">
+    <div class="input-field">
+      <label for="product_name">Product Name</label>
+      <input type="text" id="product_name" name="product_name" required>
+    </div>
   
-  <label for="productName">Product Name</label>
-  <input type="text" id="productName" name="productName" required>
+    <div class="input-field">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" class="materialize-textarea" required></textarea>
+    </div>
   
-  <label for="description">Description</label>
-  <textarea id="description" name="description"></textarea>
+    <div class="input-field">
+      <label for="category_id">Category</label>
+      <select name="category_id" id="category_id" required>
+        <% categories.forEach(category => { %>
+          <option value="<%= category.category_id %>"><%= category.category_name %></option>
+        <% }) %>
+      </select>
+    </div>
   
-  <label for="price">Price</label>
-  <input type="number" step="0.01" id="price" name="price" required>
+    <div class="input-field">
+      <label for="price">Price</label>
+      <input type="number" step="0.01" id="price" name="price" required>
+    </div>
   
-  <label for="imageUrl">Image URL</label>
-  <input type="text" id="imageUrl" name="imageUrl">
+    <div class="input-field">
+      <label for="stock_quantity">Stock Quantity</label>
+      <input type="number" id="stock_quantity" name="stock_quantity" value="0">
+    </div>
   
-  <button type="submit">Add Product</button>
-</form> -->
-<!-- <h2>Add Product</h2>
-<form action="/business/products/add" method="POST" enctype="multipart/form-data">
-  <label for="categoryId">Category</label>
-  <select name="categoryId" id="categoryId" style="display: block; visibility: visible;" required>
-    <% categories.forEach(category => { %>
-      <option value="<%= category.category_id %>"><%= category.category_name %></option>
-    <% }) %>
-  </select>
+    <div class="file-field input-field">
+      <div class="btn">
+        <span>Upload Image</span>
+        <input type="file" id="image_url" name="image_url" required>
+      </div>
+      <div class="file-path-wrapper">
+        <input class="file-path validate" type="text" placeholder="Upload an image">
+      </div>
+    </div>
+    
   
-  <label for="productName">Product Name</label>
-  <input type="text" id="productName" name="productName" required>
-  
-  <label for="description">Description</label>
-  <textarea id="description" name="description"></textarea>
-  
-  <label for="price">Price</label>
-  <input type="number" step="0.01" id="price" name="price" required>
-  
-  <label for="image">Upload Image</label>
-  <input type="file" id="image" name="image" accept="image/*">
-  
-  <button type="submit">Add Product</button>
-</form>
- -->
+    <button type="submit" class="btn waves-effect waves-light">Add Product</button>
+  </form>  
+</div>
 
- <div class="container">
+
+<!--  <div class="container">
   <h3 class="center-align">Add Product</h3>
   <form action="/business/products/add" method="POST" enctype="multipart/form-data" class="col s12">
     <div class="row">
@@ -60,18 +60,6 @@
         <label for="categoryId">Category</label>
       </div>
     </div>
-    
-    <!-- <div class="row">
-      <div class="input-field col s12">
-        <label for="categoryId">Category</label>
-        <select name="categoryId" id="categoryId" class="browser-default" required>
-          <option value="" disabled selected>Select a category</option>
-          <% categories.forEach(category => { %>
-            <option value="<%= category.category_id %>"><%= category.category_name %></option>
-          <% }) %>
-        </select>
-      </div>
-    </div> -->
     <div class="row">
       <div class="input-field col s12">
         <input type="text" id="productName" name="productName" required>
@@ -108,3 +96,4 @@
     </div>
   </form>
 </div>
+ -->

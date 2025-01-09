@@ -1,80 +1,6 @@
-/* const Product = require('../models/Product');
-
-// Show the list of products for the business owner
-exports.getProducts = (req, res) => {
-  const ownerId = req.session.userId;
-  
-  Product.getByOwner(ownerId, (err, products) => {
-    if (err) {
-      console.error('Error fetching products:', err);
-      return res.status(500).send('Error fetching products');
-    }
-    res.render('business/products', { layout: 'layouts/adminLayout', theme: 'admin', products });
-  });
-};
-
-// Render the add product page
-exports.getAddProduct = (req, res) => {
-  res.render('business/addProduct', { layout: 'layouts/adminLayout', theme: 'admin' });
-};
-
-// Handle adding a new product
-exports.postAddProduct = (req, res) => {
-  const { categoryId, productName, description, price, imageUrl } = req.body;
-  const ownerId = req.session.userId;
-
-  Product.addProduct(ownerId, categoryId, productName, description, price, imageUrl, (err) => {
-    if (err) {
-      console.error('Error adding product:', err);
-      return res.status(500).send('Error adding product');
-    }
-    res.redirect('/business/products');
-  });
-};
-
-// Render the edit product page
-exports.getEditProduct = (req, res) => {
-  const productId = req.params.id;
-
-  Product.getById(productId, (err, product) => {
-    if (err || !product) {
-      console.error('Error fetching product:', err);
-      return res.status(404).send('Product not found');
-    }
-    res.render('business/editProduct', { layout: 'layouts/adminLayout', theme: 'admin', product });
-  });
-};
-
-// Handle updating a product
-exports.postEditProduct = (req, res) => {
-  const { categoryId, productName, description, price, imageUrl } = req.body;
-  const productId = req.params.id;
-
-  Product.updateProduct(productId, categoryId, productName, description, price, imageUrl, (err) => {
-    if (err) {
-      console.error('Error updating product:', err);
-      return res.status(500).send('Error updating product');
-    }
-    res.redirect('/business/products');
-  });
-};
-
-// Handle deleting a product
-exports.deleteProduct = (req, res) => {
-  const productId = req.params.id;
-
-  Product.deleteProduct(productId, (err) => {
-    if (err) {
-      console.error('Error deleting product:', err);
-      return res.status(500).send('Error deleting product');
-    }
-    res.redirect('/business/products');
-  });
-};
- */
 const Product = require('../models/Product');
 const ProductCategory = require('../models/ProductCategory');
-
+const db = require('../config/db');
 // Show all products for the logged-in business owner
 exports.getProducts = (req, res) => {
   const ownerId = req.session.userId; // Get logged-in user's ID
@@ -89,7 +15,7 @@ exports.getProducts = (req, res) => {
 };
 
 // Render the add product page
-exports.getAddProduct = (req, res) => {
+/* exports.getAddProduct = (req, res) => {
   //console.log('inside getAddProduct')
   ProductCategory.getAllCategories((err, categories) => {
     if (err) {
@@ -98,11 +24,163 @@ exports.getAddProduct = (req, res) => {
     }
     res.render('business/addProduct', { layout: 'layouts/adminLayout', theme: 'admin', categories });
   });
-};
+}; */
+exports.getAddProduct = (req, res) => {
+  const user_id = req.session.userId;
 
+  if (!user_id) {
+    return res.redirect('/auth/login'); // Ensure user is logged in
+  }
+
+  // Fetch product categories for the dropdown
+  const productCategoriesQuery = `SELECT category_id, category_name FROM ProductCategories`;
+
+  // Fetch business ID associated with the logged-in user
+  const businessQuery = `SELECT business_id FROM Businesses WHERE user_id = ?`;
+
+  db.query(productCategoriesQuery, (err, categories) => {
+    if (err) {
+      console.error('Error fetching product categories:', err);
+      return res.status(500).send('Error loading add product page.');
+    }
+
+    db.query(businessQuery, [user_id], (err, businessResults) => {
+      if (err || businessResults.length === 0) {
+        console.error('Error fetching business ID:', err);
+        return res.status(403).send('Unauthorized: You must be a business user to add products.');
+      }
+
+      const business_id = businessResults[0].business_id;
+
+      // Render the add product page with categories and business ID
+      res.render('business/addProduct', {
+        layout: 'layouts/adminLayout',
+        theme: 'admin',
+        categories, // Pass product categories
+        business_id, // Pass business ID
+      });
+    });
+  });
+};
 
 // Handle adding a new product
 exports.postAddProduct = (req, res) => {
+  console.log('Multer file object:', req.file); // Log the file object to debug
+  console.log('Request body:', req.body); // Log the request body to debug
+
+  const { product_name, description, category_id, price, stock_quantity } = req.body;
+  const business_owner_id = req.session.userId; // Use the logged-in user's ID
+  const image_url = req.file ? `/images/${req.file.filename}` : null; // Get the uploaded image's URL
+  console.log('Image URL to be inserted:', image_url);
+
+  if (!product_name || !description || !category_id || !price || !business_owner_id) {
+    console.error('Missing required fields:', { product_name, description, category_id, price, business_owner_id });
+    return res.status(400).send('All fields are required.');
+  }
+
+  // Fetch the business_id for the logged-in user
+  const queryBusiness = `
+    SELECT business_id 
+    FROM Businesses 
+    WHERE user_id = ?
+  `;
+
+  db.query(queryBusiness, [business_owner_id], (err, results) => {
+    if (err) {
+      console.error('Error fetching business ID:', err);
+      return res.status(500).send('Error fetching business details.');
+    }
+
+    if (results.length === 0) {
+      console.error('No business found for the logged-in user.');
+      return res.status(400).send('No associated business found.');
+    }
+
+    const business_id = results[0].business_id;
+
+    // Insert the product into the database
+    const queryInsertProduct = `
+      INSERT INTO Products (
+        business_owner_id, 
+        business_id, 
+        category_id, 
+        product_name, 
+        description, 
+        price, 
+        stock_quantity, 
+        image_url
+      ) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    db.query(
+      queryInsertProduct,
+      [
+        business_owner_id,
+        business_id,
+        category_id,
+        product_name,
+        description,
+        parseFloat(price),
+        stock_quantity || 0, // Default to 0 if not provided
+        image_url, // Insert the image URL
+      ],
+      (err) => {
+        if (err) {
+          console.error('Error adding product:', err);
+          return res.status(500).send('Error adding product.');
+        }
+
+        res.redirect('/business/products'); // Redirect to the business product management page
+      }
+    );
+  });
+};
+
+
+/* exports.postAddProduct = (req, res) => {
+  const user_id = req.session.userId;
+  const { product_name, description, price, stock_quantity, category_id } = req.body;
+  const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+
+  // Fetch the business_id associated with the logged-in user
+  const businessQuery = 'SELECT business_id FROM Businesses WHERE user_id = ?';
+  db.query(businessQuery, [user_id], (err, results) => {
+    if (err || results.length === 0) {
+      console.error('Error fetching business_id:', err);
+      return res.status(500).send('Error fetching business information');
+    }
+
+    const business_id = results[0].business_id;
+
+    // Insert the product into the Products table
+    const insertProductQuery = `
+      INSERT INTO Products (product_name, description, price, stock_quantity, category_id, image_url, business_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    db.query(
+      insertProductQuery,
+      [
+        product_name,
+        description,
+        parseFloat(price),
+        parseInt(stock_quantity, 10),
+        parseInt(category_id, 10),
+        image_url,
+        business_id,
+      ],
+      (err) => {
+        if (err) {
+          console.error('Error inserting product:', err);
+          return res.status(500).send('Error adding product');
+        }
+        res.redirect('/business/products'); // Redirect to the product management page
+      }
+    );
+  });
+};
+ */
+/* exports.postAddProduct = (req, res) => {
   //const { categoryId, productName, description, price, imageUrl } = req.body;
   const { categoryId, productName, description, price } = req.body;
   console.log("Request Body:=",req.body);
@@ -117,6 +195,43 @@ exports.postAddProduct = (req, res) => {
     res.redirect('/business/products');
   });
 };
+ */
+/* exports.addProduct = (req, res) => {
+  const { product_name, description, price, stock_quantity, category_id } = req.body;
+  const user_id = req.session.userId;
+
+  // Validate file upload
+  const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+
+  // Fetch the business_id associated with the logged-in user
+  const businessQuery = 'SELECT business_id FROM Businesses WHERE user_id = ?';
+  db.query(businessQuery, [user_id], (err, results) => {
+    if (err || results.length === 0) {
+      console.error('Error fetching business_id:', err);
+      return res.status(500).send('Error fetching business information');
+    }
+
+    const business_id = results[0].business_id;
+
+    // Insert the product into the Products table
+    const insertProductQuery = `
+      INSERT INTO Products (product_name, description, price, stock_quantity, category_id, image_url, business_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    db.query(
+      insertProductQuery,
+      [product_name, description, parseFloat(price), parseInt(stock_quantity, 10), category_id, image_url, business_id],
+      (err) => {
+        if (err) {
+          console.error('Error inserting product:', err);
+          return res.status(500).send('Error adding product');
+        }
+        res.redirect('/business/products'); // Redirect to product management page
+      }
+    );
+  });
+};
+ */
 
 // Render the edit product page
 /* exports.getEditProduct = (req, res) => {
@@ -189,5 +304,25 @@ exports.deleteProduct = (req, res) => {
       return res.status(500).send('Error deleting product');
     }
     res.redirect('/business/products');
+  });
+};
+exports.getBusinessOrders = (req, res) => {
+  const user_id = req.session.userId;
+
+  const query = `
+    SELECT o.order_id, o.order_date, oi.product_id, p.product_name, oi.quantity, oi.price
+    FROM orders o
+    JOIN orderitems oi ON o.order_id = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    JOIN businesses b ON p.business_id = b.business_id
+    WHERE b.user_id = ?
+  `;
+
+  db.query(query, [user_id], (err, results) => {
+    if (err) {
+      console.error('Error fetching business orders:', err);
+      return res.status(500).send('Error fetching orders');
+    }
+    res.render('business/orders', { layout: 'layouts/adminLayout', theme: 'admin', orders: results });
   });
 };
