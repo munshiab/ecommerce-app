@@ -8,6 +8,46 @@ exports.getRegister = (req, res) => {
 
 // Handle Registration Form Submission
 exports.register = (req, res) => {
+  const { username, email, password, role, business_name, description, category_id } = req.body;
+
+  // Hash the password
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
+  // Determine role_id based on the selected role
+  const role_id = role === 'business' ? 2 : 1;
+
+  // Insert user into the users table
+  const userQuery = `
+    INSERT INTO users (username, email, password, role_id) 
+    VALUES (?, ?, ?, ?)
+  `;
+  db.query(userQuery, [username, email, hashedPassword, role_id], (err, userResult) => {
+    if (err) {
+      console.error('Error registering user:', err);
+      return res.status(500).send('Error registering user');
+    }
+
+    if (role_id === 2) {
+      // If the user is a business, save business details
+      const user_id = userResult.insertId;
+      const businessQuery = `
+        INSERT INTO businesses (user_id, business_name, description, category_id) 
+        VALUES (?, ?, ?, ?)
+      `;
+      db.query(businessQuery, [user_id, business_name, description, category_id], (err) => {
+        if (err) {
+          console.error('Error registering business:', err);
+          return res.status(500).send('Error registering business');
+        }
+        res.redirect('/auth/login');
+      });
+    } else {
+      // Redirect customer to login after successful registration
+      res.redirect('/auth/login');
+    }
+  });
+};
+/* exports.register = (req, res) => {
   const { username, email, password, roleId } = req.body;
   const hashedPassword = bcrypt.hashSync(password, 10);
 
@@ -19,7 +59,7 @@ exports.register = (req, res) => {
     }
     res.redirect('/auth/login');
   });
-};
+}; */
 
 // Render Login Page
 exports.getLogin = (req, res) => {
