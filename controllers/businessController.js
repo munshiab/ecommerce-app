@@ -306,23 +306,58 @@ exports.deleteProduct = (req, res) => {
     res.redirect('/business/products');
   });
 };
-exports.getBusinessOrders = (req, res) => {
-  const user_id = req.session.userId;
+exports.getOrders = (req, res) => {
+  const businessOwnerId = req.session.userId; // Logged-in user's ID
+
+  if (!businessOwnerId) {
+    return res.status(403).send('Unauthorized access.');
+  }
 
   const query = `
-    SELECT o.order_id, o.order_date, oi.product_id, p.product_name, oi.quantity, oi.price
-    FROM orders o
-    JOIN orderitems oi ON o.order_id = oi.order_id
-    JOIN products p ON oi.product_id = p.product_id
-    JOIN businesses b ON p.business_id = b.business_id
-    WHERE b.user_id = ?
+    SELECT 
+      Orders.order_id,
+      Orders.order_date,
+      CAST(Orders.total_amount AS DECIMAL(10,2)) AS total_amount,
+      Orders.status AS order_status,
+      OrderItems.quantity,
+      OrderItems.price AS item_price,
+      Products.product_name
+    FROM Orders
+    JOIN OrderItems ON Orders.order_id = OrderItems.order_id
+    JOIN Products ON OrderItems.product_id = Products.product_id
+    WHERE Products.business_owner_id = ?
+    ORDER BY Orders.order_date DESC
   `;
 
-  db.query(query, [user_id], (err, results) => {
+  db.query(query, [businessOwnerId], (err, results) => {
     if (err) {
-      console.error('Error fetching business orders:', err);
-      return res.status(500).send('Error fetching orders');
+      console.error('Error fetching orders:', err);
+      return res.status(500).send('Error fetching orders.');
     }
-    res.render('business/orders', { layout: 'layouts/adminLayout', theme: 'admin', orders: results });
+
+    // Group orders by order_id
+    const orders = results.reduce((acc, item) => {
+      if (!acc[item.order_id]) {
+        acc[item.order_id] = {
+          order_id: item.order_id,
+          order_date: item.order_date,
+          total_amount: parseFloat(item.total_amount) || 0,
+          order_status: item.order_status,
+          items: [],
+        };
+      }
+      acc[item.order_id].items.push({
+        product_name: item.product_name,
+        quantity: item.quantity,
+        item_price: parseFloat(item.item_price) || 0,
+      });
+      return acc;
+    }, {});
+
+    res.render('business/orders', {
+      layout: 'layouts/adminLayout',
+      theme: 'admin',
+      orders: Object.values(orders), // Convert object to array
+    });
   });
 };

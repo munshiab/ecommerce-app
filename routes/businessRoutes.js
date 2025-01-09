@@ -33,5 +33,6 @@ router.get('/products/edit/:id', businessController.getEditProduct);
 router.post('/products/edit/:id', upload.single('image_url'), businessController.postEditProduct);
 // Route to delete a product
 router.get('/products/delete/:id', businessController.deleteProduct);
-
+// Route to view orders
+router.get('/orders', businessController.getOrders);
 module.exports = router;
