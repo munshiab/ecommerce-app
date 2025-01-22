@@ -34,6 +34,11 @@ router.get('/business-categories', adminAuth, adminController.getBusinessCategor
 router.post('/business-categories/add', adminAuth, adminController.addBusinessCategory);
 router.post('/business-categories/update/:id', adminAuth, adminController.updateBusinessCategory);
 router.post('/business-categories/delete/:id', adminAuth, adminController.deleteBusinessCategory);
+// Route to render the edit form
+router.get('/business-categories/edit/:id', adminAuth, adminController.getEditBusinessCategory);
+// Route to handle the edit form submission
+router.post('/business-categories/edit/:id', adminAuth, adminController.updateBusinessCategory);
+
 // Route to get the edit business page
 router.get('/businesses/edit/:id', adminAuth, adminController.getEditBusiness);
 

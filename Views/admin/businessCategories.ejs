@@ -1,6 +1,6 @@
-
 <div class="container">
-  <h4>Manage Business Categories</h4>
+  <h4 class="center-align">Manage Business Categories</h4>
+
   <table class="highlight responsive-table">
     <thead>
       <tr>
@@ -9,26 +9,43 @@
       </tr>
     </thead>
     <tbody>
-      <% categories.forEach(category => { %>
+      <% businessCategories.forEach(category => { %>
         <tr>
-          <td><%= category.name %></td>
+          <td><%= category.category_name %></td>
           <td>
-            <a href="/admin/business-categories/edit/<%= category.id %>" class="btn-small">Edit</a>
-            <a href="/admin/business-categories/delete/<%= category.id %>" class="btn-small red">Delete</a>
+            <a href="/admin/business-categories/edit/<%= category.category_id %>" class="btn-small waves-effect waves-light">Edit</a>
+            <form action="/admin/business-categories/delete/<%= category.category_id %>" method="POST" style="display:inline;">
+              <button type="submit" class="btn-small red waves-effect waves-light">Delete</button>
+            </form>
           </td>
         </tr>
       <% }) %>
     </tbody>
   </table>
-  <div class="row">
+
+  <div class="center-align">
+    <a href="#addCategoryModal" class="btn waves-effect waves-light modal-trigger">Add Category</a>
+  </div>
+</div>
+
+<!-- Modal for Adding a New Category -->
+<div id="addCategoryModal" class="modal">
+  <div class="modal-content">
+    <h4>Add New Business Category</h4>
     <form action="/admin/business-categories/add" method="POST">
-      <div class="input-field col s6">
-        <input id="category_name" name="name" type="text" required>
-        <label for="category_name">New Category Name</label>
+      <div class="input-field">
+        <input id="category_name" name="category_name" type="text" required>
+        <label for="category_name">Category Name</label>
       </div>
-      <div class="col s6">
-        <button type="submit" class="btn waves-effect waves-light">Add Category</button>
-      </div>
+      <button type="submit" class="btn waves-effect waves-light">Add Category</button>
     </form>
   </div>
 </div>
+
+<script>
+  // Initialize Materialize modal
+  document.addEventListener('DOMContentLoaded', function() {
+    const modals = document.querySelectorAll('.modal');
+    M.Modal.init(modals);
+  });
+</script>

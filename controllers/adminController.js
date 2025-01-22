@@ -204,57 +204,63 @@ exports.getCustomers = (req, res) => {
 
 // Manage Business Categories
 exports.getBusinessCategories = (req, res) => {
-  const query = 'SELECT * FROM BusinessCategories';
-
-  db.query(query, (err, categories) => {
-    if (err) {
-      console.error('Error fetching business categories:', err);
-      return res.status(500).send('Error fetching business categories.');
-    }
-
-    res.render('admin/businessCategories', {
-      layout: 'layouts/adminLayout',
-      theme: 'admin',
-      categories,
+    const query = 'SELECT * FROM BusinessCategories'; // Fetch all business categories from the table
+  
+    db.query(query, (err, results) => {
+      if (err) {
+        console.error('Error fetching business categories:', err);
+        return res.status(500).send('Error fetching business categories');
+      }
+  
+      // Render the view with the fetched data
+      res.render('admin/businessCategories', {
+        layout: 'layouts/adminLayout',
+        theme: 'admin',
+        businessCategories: results, // Pass the data to the view
+      });
     });
-  });
-};
+  };
+  
 
 exports.addBusinessCategory = (req, res) => {
-  const { category_name } = req.body;
-
-  const query = 'INSERT INTO BusinessCategories (category_name) VALUES (?)';
-
-  db.query(query, [category_name], (err) => {
-    if (err) {
-      console.error('Error adding business category:', err);
-      return res.status(500).send('Error adding business category.');
+    const { category_name } = req.body;
+  
+    // Validate input
+    if (!category_name || category_name.trim() === '') {
+      return res.status(400).send('Category name is required');
     }
+  
+    const query = 'INSERT INTO BusinessCategories (category_name) VALUES (?)';
+  
+    db.query(query, [category_name.trim()], (err, results) => {
+      if (err) {
+        console.error('Error adding business category:', err);
+        return res.status(500).send('Error adding business category');
+      }
+  
+      res.redirect('/admin/business-categories');
+    });
+  };  
 
-    res.redirect('/admin/business-categories');
-  });
-};
-
-exports.updateBusinessCategory = (req, res) => {
-  const { category_name } = req.body;
-  const { id } = req.params;
-
-  const query = `
-    UPDATE BusinessCategories 
-    SET category_name = ? 
-    WHERE category_id = ?
-  `;
-
-  db.query(query, [category_name, id], (err) => {
-    if (err) {
-      console.error('Error updating business category:', err);
-      return res.status(500).send('Error updating business category.');
+  exports.updateBusinessCategory = (req, res) => {
+    const { id } = req.params;
+    const { category_name } = req.body;
+  
+    if (!category_name || category_name.trim() === '') {
+      return res.status(400).send('Category name is required');
     }
-
-    res.redirect('/admin/business-categories');
-  });
-};
-
+  
+    const query = 'UPDATE BusinessCategories SET category_name = ? WHERE category_id = ?';
+    db.query(query, [category_name.trim(), id], (err) => {
+      if (err) {
+        console.error('Error updating business category:', err);
+        return res.status(500).send('Error updating business category');
+      }
+  
+      res.redirect('/admin/business-categories');
+    });
+  };
+  
 exports.deleteBusinessCategory = (req, res) => {
   const { id } = req.params;
 
@@ -269,7 +275,28 @@ exports.deleteBusinessCategory = (req, res) => {
     res.redirect('/admin/business-categories');
   });
 };
-
+exports.getEditBusinessCategory = (req, res) => {
+    const { id } = req.params;
+  
+    const query = 'SELECT * FROM BusinessCategories WHERE category_id = ?';
+    db.query(query, [id], (err, results) => {
+      if (err) {
+        console.error('Error fetching business category:', err);
+        return res.status(500).send('Error fetching business category');
+      }
+  
+      if (results.length === 0) {
+        return res.status(404).send('Category not found');
+      }
+  
+      res.render('admin/editBusinessCategory', {
+        layout: 'layouts/adminLayout',
+        theme: 'admin',
+        category: results[0],
+      });
+    });
+  };
+  
 // Manage Product Categories
 exports.getProductCategories = (req, res) => {
   const query = 'SELECT * FROM ProductCategories';

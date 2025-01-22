@@ -1,0 +1,18 @@
+<div class="container">
+    <h4 class="center-align">Edit Business Category</h4>
+    <form action="/admin/business-categories/edit/<%= category.category_id %>" method="POST">
+      <div class="input-field">
+        <input
+          id="category_name"
+          name="category_name"
+          type="text"
+          value="<%= category.category_name %>"
+          required
+        />
+        <label for="category_name" class="active">Category Name</label>
+      </div>
+      <button type="submit" class="btn waves-effect waves-light">Update Category</button>
+      <a href="/admin/business-categories" class="btn-flat">Cancel</a>
+    </form>
+  </div>
+  
