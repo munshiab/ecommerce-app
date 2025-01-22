@@ -183,7 +183,7 @@ exports.updateBusiness = (req, res) => {
 // Manage Customers
 exports.getCustomers = (req, res) => {
   const query = `
-    SELECT user_id, username, email 
+    SELECT user_id, username, email, created_at 
     FROM Users 
     WHERE role_id = 1
   `;

@@ -11,9 +11,9 @@
     <tbody>
       <% customers.forEach(customer => { %>
         <tr>
-          <td><%= customer.name %></td>
+          <td><%= customer.username %></td>
           <td><%= customer.email %></td>
-          <td><%= new Date(customer.registered_on).toLocaleDateString() %></td>
+          <td><%= new Date(customer.created_at).toLocaleDateString() %></td>
         </tr>
       <% }) %>
     </tbody>
