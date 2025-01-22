@@ -1,0 +1,34 @@
+
+<div class="container">
+  <h4>Manage Product Categories</h4>
+  <table class="highlight responsive-table">
+    <thead>
+      <tr>
+        <th>Category Name</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% categories.forEach(category => { %>
+        <tr>
+          <td><%= category.name %></td>
+          <td>
+            <a href="/admin/product-categories/edit/<%= category.id %>" class="btn-small">Edit</a>
+            <a href="/admin/product-categories/delete/<%= category.id %>" class="btn-small red">Delete</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <div class="row">
+    <form action="/admin/product-categories/add" method="POST">
+      <div class="input-field col s6">
+        <input id="category_name" name="name" type="text" required>
+        <label for="category_name">New Category Name</label>
+      </div>
+      <div class="col s6">
+        <button type="submit" class="btn waves-effect waves-light">Add Category</button>
+      </div>
+    </form>
+  </div>
+</div>

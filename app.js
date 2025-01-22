@@ -8,6 +8,8 @@ const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const checkoutRoutes = require('./routes/checkoutRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
+const adminRoutes = require('./routes/adminRoutes');
+
 require('dotenv').config();
 
 const app = express();
@@ -106,6 +108,7 @@ app.use((req, res, next) => {
   }
 });
 app.use('/cart', cartRoutes); // Add Cart routes
+app.use('/admin', adminRoutes);
 // Authentication routes
 app.use('/auth', authRoutes);
 app.use('/home', homeRoutes);
@@ -121,10 +124,11 @@ const productController = require('./controllers/productController');
 app.get('/', productController.getProductsPage)
 
 // Admin dashboard route
-app.get('/admin/dashboard', (req, res) => {
+/* app.get('/admin/dashboard', (req, res) => {
   if (req.session.roleId !== 3) return res.status(403).send('Access Denied');
   res.render('admin/dashboard', { layout: 'layouts/adminLayout', theme: 'admin' });
-});
+}); */
+
 
 // Business owner dashboard route
 app.get('/business/home', (req, res) => {

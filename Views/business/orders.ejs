@@ -11,7 +11,6 @@
             <p>Order Date: <%= new Date(order.order_date).toLocaleString() %></p>
             <p>Total Amount: $<%= order.total_amount.toFixed(2) %></p>
             <p>Status: <%= order.order_status %></p>
-  
             <h6>Items:</h6>
             <ul class="collection">
               <% order.items.forEach(item => { %>

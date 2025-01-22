@@ -84,7 +84,7 @@ exports.login = (req, res) => {
     // Set session variables
     req.session.userId = user.user_id;
     req.session.roleId = user.role_id;
-
+    req.session.isAdmin = user.role_id === 3;
     // Merge session cart into database cart
     const sessionCart = req.session.cart || [];
     if (sessionCart.length > 0) {

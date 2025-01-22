@@ -1,0 +1,25 @@
+<div class="container">
+    <h3 class="center-align">Edit Business</h3>
+    <form action="/admin/businesses/update/<%= business.business_id %>" method="POST">
+      <div class="input-field">
+        <input id="business_name" name="business_name" type="text" value="<%= business.business_name %>" required>
+        <label for="business_name" class="active">Business Name</label>
+      </div>
+      <div class="input-field">
+        <textarea id="description" name="description" class="materialize-textarea" required><%= business.description %></textarea>
+        <label for="description" class="active">Description</label>
+      </div>
+      <div class="input-field">
+        <select id="category_id" name="category_id" required>
+          <% categories.forEach(category => { %>
+            <option value="<%= category.category_id %>" <%= category.category_id === business.category_id ? 'selected' : '' %>>
+              <%= category.category_name %>
+            </option>
+          <% }) %>
+        </select>
+        <label for="category_id">Category</label>
+      </div>
+      <button type="submit" class="btn waves-effect waves-light">Update</button>
+    </form>
+  </div>
+  

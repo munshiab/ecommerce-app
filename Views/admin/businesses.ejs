@@ -1,0 +1,36 @@
+<div class="container">
+    <h3 class="center-align">Manage Businesses</h3>
+    <table class="highlight responsive-table">
+      <thead>
+        <tr>
+          <th>Business Name</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Owner Name</th>
+          <th>Email</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% businesses.forEach(business => { %>
+          <tr>
+            <td><%= business.business_name %></td>
+            <td><%= business.description %></td>
+            <td><%= business.category_name %></td>
+            <td><%= business.username %></td>
+            <td><%= business.email %></td>
+            <td>
+                <!-- Edit Button -->
+                <a href="/admin/businesses/edit/<%= business.business_id %>" class="btn-small waves-effect">Edit</a>
+              
+                <!-- Delete Button -->
+                <form action="/admin/businesses/delete/<%= business.business_id %>" method="POST" style="display: inline;">
+                  <button type="submit" class="btn-small red waves-effect">Delete</button>
+                </form>
+              </td>              
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  
